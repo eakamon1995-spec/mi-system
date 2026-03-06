@@ -4624,37 +4624,18 @@ async function translateToThai(engText){
   if(!engText||!engText.trim()) return '';
   const cacheKey=engText.trim().toLowerCase();
   if(_translateCache[cacheKey]) return _translateCache[cacheKey];
-  const apiKey=localStorage.getItem('claude_api_key')||'';
-  if(!apiKey){
-    showApiKeyGuide();
-    return '';
-  }
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':apiKey,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:200,
-        messages:[{role:'user',content:'แปลชื่อสินค้าต่อไปนี้เป็นภาษาไทย ตอบเฉพาะคำแปลภาษาไทยเท่านั้น ไม่ต้องมีคำอธิบายอื่น ไม่ต้องใส่เครื่องหมายคำพูด:\n'+engText.trim()}]
-      })
-    });
+    const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q='+encodeURIComponent(engText.trim());
+    const resp=await fetch(url);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
     const data=await resp.json();
-    if(data.error){
-      const msg=data.error.message||'Unknown error';
-      console.warn('API error:',msg);
-      if(msg.includes('API key')) toast('❌ API Key ไม่ถูกต้อง กรุณาตรวจสอบใน Settings','e');
-      else toast('แปลไม่ได้: '+msg,'e');
-      return '';
+    // Google Translate returns [[["translated","original",...],...],...]
+    const thai=(data[0]||[]).map(seg=>(seg[0]||'')).join('').trim();
+    if(thai){
+      _translateCache[cacheKey]=thai;
+      return thai;
     }
-    const thai=(data.content||[]).map(b=>b.text||'').join('').trim();
-    if(thai) _translateCache[cacheKey]=thai;
-    return thai||'';
+    return '';
   }catch(e){
     console.warn('Translation failed:',e);
     toast('แปลภาษาล้มเหลว: '+e.message,'e');
