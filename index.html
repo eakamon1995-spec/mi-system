@@ -780,7 +780,11 @@ input[readonly]{background:var(--surface2);cursor:default;}
       Import Data
     </div>
   </nav>
-  <div class="sfooter">MI_record_PRICE_v1<br/>6,443 records · 1,158 POs</div>
+  <div id="logoutArea" style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.1);margin-top:4px;">
+  <div id="sidebarUsername" style="font-size:11px;color:#aaa;margin-bottom:6px;padding-left:2px;"></div>
+  <button onclick="doLogout()" style="width:100%;padding:7px 0;background:rgba(220,50,50,0.15);color:#e57373;border:1px solid rgba(220,50,50,0.3);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;" onmouseover="this.style.background='rgba(220,50,50,0.3)'" onmouseout="this.style.background='rgba(220,50,50,0.15)'">🚪 ออกจากระบบ</button>
+</div>
+<div class="sfooter">MI_record_PRICE_v1<br/>6,443 records · 1,158 POs</div>
 </aside>
 
 <!-- MAIN -->
@@ -2768,6 +2772,7 @@ function updateThemeUI(t){
 // NAV
 // ============================
 function goPage(id,el){
+  const _sbUsr=document.getElementById('sidebarUsername');if(_sbUsr&&!_sbUsr.textContent){const _u=JSON.parse(localStorage.getItem('mi_erpUser')||'{}');_sbUsr.textContent='👤 '+(_u.name||_u.username||'');}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
