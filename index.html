@@ -2527,6 +2527,7 @@ async function syncAllFromSheets() {
     if (poRes.ok && poRes.data) {
       poStore = poRes.data;
       persist();
+      buildProdEngLibFromPOs(poStore);
       if (currentPage === 'po-list') renderPOList();
       if (currentPage === 'po-status') renderStatusBoard();
     }
@@ -3554,7 +3555,7 @@ function addPOItem(){
       </div>
     </td>
     <td><input type="text" placeholder="English name..." style="min-width:200px;width:100%" class="po-engname" onblur="autoTranslateThai(this)"></td>
-    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material"></td>
+    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" onblur="saveMaterialToEngLib(this)"></td>
     <td class="cell-green"><input type="number" placeholder="0.000" step="0.001" min="0" style="width:72px" class="ex-work" oninput="calcRow(this)"></td>
     <td class="cell-yellow auto" id="p2_${idx}">—</td>
     <td class="cell-yellow"><input type="number" placeholder="240" step="1" min="0" style="width:62px" class="pcs-ctn" oninput="calcRow(this)"></td>
@@ -4694,11 +4695,80 @@ async function autoTranslateThai(engInput){
   if(!eng) return;
   const tr=engInput.closest('tr');
   const thaiInp=tr.querySelector('.po-thainame');
-  if(thaiInp.value.trim()) return; // Don't overwrite existing Thai name
+  const matInp=tr.querySelector('.po-material');
+  const engKey=eng.toLowerCase();
+  // Check local library first (instant, no API)
+  if(prodEngLib[engKey]){
+    const lib=prodEngLib[engKey];
+    if(!thaiInp.value.trim() && lib.thai) thaiInp.value=lib.thai;
+    if(matInp && !matInp.value.trim() && lib.material) matInp.value=lib.material;
+    return;
+  }
+  if(thaiInp.value.trim()) return;
+  // Not in library - translate via AI
   engInput.style.opacity='0.6';
   const thai=await translateToThai(eng);
   engInput.style.opacity='1';
-  if(thai && !thaiInp.value.trim()) thaiInp.value=thai;
+  if(thai && !thaiInp.value.trim()){
+    thaiInp.value=thai;
+    // Save to local library + localStorage
+    prodEngLib[engKey]={thai, material:matInp?matInp.value.trim():''};
+    saveProdEngLib();
+  }
+}
+
+// ── Product Eng Library: build from PO history ──
+function buildProdEngLibFromPOs(poData){
+  if(!poData) return;
+  const arr=Array.isArray(poData)?poData:Object.values(poData);
+  arr.forEach(po=>{
+    (po.items||[]).forEach(it=>{
+      const eng=(it.engName||it.eng||'').trim();
+      const thai=(it.thaiName||it.thai||'').trim();
+      const mat=(it.material||'').trim();
+      if(eng && thai){
+        const key=eng.toLowerCase();
+        if(!prodEngLib[key]){
+          prodEngLib[key]={thai, material:mat};
+        } else {
+          // Update material if now have it
+          if(mat && !prodEngLib[key].material) prodEngLib[key].material=mat;
+        }
+      }
+    });
+  });
+  saveProdEngLib();
+}
+
+// Save prodEngLib to localStorage
+function saveProdEngLib(){
+  try{ localStorage.setItem('prod_eng_lib', JSON.stringify(prodEngLib)); }
+  catch(e){ console.warn('saveProdEngLib error:',e); }
+}
+
+// Save a single eng→thai+material entry to library
+function saveProductNameToBackend(eng, thai, material){
+  const key=eng.toLowerCase();
+  prodEngLib[key]={thai, material:material||''};
+  saveProdEngLib();
+  // Also save to prodNameLib if no entry by this eng name
+  // (prodNameLib is code-based; this is eng-based, separate)
+}
+
+// Also save material when user blurs from material field
+function saveMaterialToEngLib(matInput){
+  const tr=matInput.closest('tr');
+  const eng=(tr.querySelector('.po-engname')?.value||'').trim();
+  const mat=matInput.value.trim();
+  if(!eng || !mat) return;
+  const key=eng.toLowerCase();
+  if(prodEngLib[key]){
+    prodEngLib[key].material=mat;
+    saveProdEngLib();
+  } else {
+    const thai=(tr.querySelector('.po-thainame')?.value||'').trim();
+    if(thai){ prodEngLib[key]={thai, material:mat}; saveProdEngLib(); }
+  }
 }
 
 // Called from Product Name modal translate button / blur
@@ -4844,6 +4914,7 @@ if(!miLib){ miLib=BC_MI_ORIGINAL.map(r=>({...r})); }
 let koLib = JSON.parse(localStorage.getItem('bc_ko_lib')||'null');
 if(!koLib){ koLib=BC_KOMON_ORIGINAL.map(r=>({...r})); }
 let prodNameLib = JSON.parse(localStorage.getItem('prod_name_lib')||'{}'); // {code:{eng,thai}}
+let prodEngLib = JSON.parse(localStorage.getItem('prod_eng_lib')||'{}'); // {engName.lower:{thai,material}}
 let bcSuppliers = JSON.parse(localStorage.getItem('bc_suppliers')||'null');
 if(!bcSuppliers){ bcSuppliers=BC_DEFAULT_SUPS.filter(s=>s&&s.trim()).map(s=>({code:s.trim(),name:s.trim(),type:'Manufacturer',country:'China',brand:'both',lead:30,contact:'',notes:''})); }
 let picStore = JSON.parse(localStorage.getItem('bc_pics')||'{}');
