@@ -3553,6 +3553,7 @@ function addPOItem(){
       </div>
     </td>
     <td><input type="text" placeholder="English name..." style="min-width:200px;width:100%" class="po-engname" onblur="autoTranslateThai(this)"></td>
+    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material"></td>
     <td class="cell-green"><input type="number" placeholder="0.000" step="0.001" min="0" style="width:72px" class="ex-work" oninput="calcRow(this)"></td>
     <td class="cell-yellow auto" id="p2_${idx}">—</td>
     <td class="cell-yellow"><input type="number" placeholder="240" step="1" min="0" style="width:62px" class="pcs-ctn" oninput="calcRow(this)"></td>
@@ -3775,7 +3776,7 @@ function savePO(){
     const inputs=tr.querySelectorAll('input');
     const agent=inputs[0]?.value||'';const bcPcs=tr.querySelector('.bc-pcs')?.value||'';const bcCtn=tr.querySelector('.bc-ctn')?.value||'';
     const fac=tr.querySelector('.fac-input')?.value||'';
-    const thaiName=tr.querySelector('.po-thainame')?.value||'';const engName=tr.querySelector('.po-engname')?.value||'';
+    const thaiName=tr.querySelector('.po-thainame')?.value||'';const engName=tr.querySelector('.po-engname')?.value||'';const material=tr.querySelector('.po-material')?.value||'';
     const ctnSize=parseFloat(tr.querySelector('.ctn-size')?.value||0)||0;
     const delivDate=tr.querySelector('.deliv-date')?.value||'';
     const pack=tr.querySelector('.po-pack')?.value||'';
@@ -4015,7 +4016,7 @@ function exportPOExcel(){
       bcPcs:tr.querySelector('.bc-pcs')?.value||'',
       bcCtn:tr.querySelector('.bc-ctn')?.value||'',
       fac:tr.querySelector('.fac-input')?.value||'',
-      thaiName,engName,
+      thaiName,engName,material,
       ex:ex||null,
       pcsCtn:pcsCtn||null,
       ttCtn:ttCtn||null,
@@ -4200,7 +4201,7 @@ function editPO(id){
       tr.querySelector('.bc-ctn').value=it.bcCtn||'';
       tr.querySelector('.fac-input').value=it.fac||'';
       tr.querySelector('.po-thainame').value=it.thaiName||'';
-      tr.querySelector('.po-engname').value=it.engName||'';
+      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material'))tr.querySelector('.po-material').value=it.material||'';
       tr.querySelector('.ex-work').value=it.ex||'';
       tr.querySelector('.pcs-ctn').value=it.pcsCtn||'';
       tr.querySelector('.tt-ctn').value=it.ttCtn||'';
@@ -4404,6 +4405,7 @@ function printSinglePO(id){
       <th style="width:60px">FAC</th>
       <th style="width:100px">Thai Name</th>
       <th style="min-width:110px">Eng Name</th>
+      <th style="min-width:130px">Material</th>
       <th style="width:54px">Ex-Work</th>
       <th style="width:60px">Price+com${po.com!=null?po.com:2}%</th>
       <th style="width:44px">Pcs/ctn</th>
