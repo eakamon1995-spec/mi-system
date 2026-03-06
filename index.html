@@ -780,9 +780,20 @@ input[readonly]{background:var(--surface2);cursor:default;}
       Import Data
     </div>
   </nav>
-  <div id="logoutArea" style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.1);margin-top:4px;">
-  <div id="sidebarUsername" style="font-size:11px;color:#aaa;margin-bottom:6px;padding-left:2px;"></div>
-  <button onclick="doLogout()" style="width:100%;padding:7px 0;background:rgba(220,50,50,0.15);color:#e57373;border:1px solid rgba(220,50,50,0.3);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;" onmouseover="this.style.background='rgba(220,50,50,0.3)'" onmouseout="this.style.background='rgba(220,50,50,0.15)'">🚪 ออกจากระบบ</button>
+  <div id="sidebarUserCard" style="padding:10px 12px;border-top:1px solid rgba(255,255,255,0.12);margin-top:4px;">
+  <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;">
+    <div id="sbAvatar" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;"></div>
+    <div style="min-width:0;flex:1;">
+      <div id="sbName" style="font-size:12px;font-weight:600;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      <div id="sbRole" style="font-size:10px;margin-top:2px;display:inline-block;padding:1px 6px;border-radius:10px;background:rgba(99,102,241,0.2);color:#a5b4fc;"></div>
+    </div>
+  </div>
+  <div id="sbLoginTime" style="font-size:10px;color:#777;margin-bottom:8px;padding-left:2px;"></div>
+  <div id="onlineUsersPanel" style="display:none;margin-bottom:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:7px 8px;">
+    <div style="font-size:10px;color:#a5b4fc;font-weight:600;margin-bottom:5px;letter-spacing:0.3px;">👥 ผู้ใช้ล่าสุด</div>
+    <div id="onlineUsersList" style="font-size:11px;color:#ccc;"></div>
+  </div>
+  <button onclick="doLogout()" style="width:100%;padding:7px 0;background:rgba(220,50,50,0.12);color:#ef9a9a;border:1px solid rgba(220,50,50,0.25);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:background 0.2s;" onmouseover="this.style.background='rgba(220,50,50,0.28)'" onmouseout="this.style.background='rgba(220,50,50,0.12)'">🚪 ออกจากระบบ</button>
 </div>
 <div class="sfooter">MI_record_PRICE_v1<br/>6,443 records · 1,158 POs</div>
 </aside>
@@ -2304,6 +2315,7 @@ async function doLogin() {
     erpToken = null; // local mode no token needed
     erpCurrentUser = { id: localMatch.id, username: localMatch.username, name: localMatch.name, role: localMatch.role, perms: ROLES[localMatch.role]?.perms || localMatch.perms || [] };
     localStorage.setItem('mi_erpUser', JSON.stringify(erpCurrentUser));
+    localStorage.setItem('mi_loginAt', new Date().toISOString());
     localStorage.removeItem('mi_erpToken');
     afterLogin();
     // Background API login เพื่อเอา token สำหรับ Sheets sync
@@ -2772,7 +2784,48 @@ function updateThemeUI(t){
 // NAV
 // ============================
 function goPage(id,el){
-  const _sbUsr=document.getElementById('sidebarUsername');if(_sbUsr&&!_sbUsr.textContent){const _u=JSON.parse(localStorage.getItem('mi_erpUser')||'{}');_sbUsr.textContent='👤 '+(_u.name||_u.username||'');}
+  // ── Sidebar user card ────────────────────────────────────
+  (function(){
+    const _u=JSON.parse(localStorage.getItem('mi_erpUser')||'{}');
+    if(!_u.username) return;
+    const av=document.getElementById('sbAvatar');
+    const nm=document.getElementById('sbName');
+    const rl=document.getElementById('sbRole');
+    const tm=document.getElementById('sbLoginTime');
+    if(av) av.textContent=(_u.name||_u.username)[0].toUpperCase();
+    if(nm) nm.textContent=_u.name||_u.username;
+    if(rl){
+      const rmap={superadmin:'Super Admin',admin:'Admin',manager:'ผู้จัดการ',purchase:'จัดซื้อ',viewer:'Viewer'};
+      const bgmap={superadmin:'rgba(234,179,8,.2)',admin:'rgba(99,102,241,.2)',manager:'rgba(16,185,129,.2)',purchase:'rgba(245,158,11,.2)',viewer:'rgba(107,114,128,.2)'};
+      const tcmap={superadmin:'#fde68a',admin:'#a5b4fc',manager:'#6ee7b7',purchase:'#fcd34d',viewer:'#d1d5db'};
+      rl.textContent=rmap[_u.role]||_u.role;
+      rl.style.background=bgmap[_u.role]||'rgba(99,102,241,.2)';
+      rl.style.color=tcmap[_u.role]||'#a5b4fc';
+    }
+    if(tm){const lat=localStorage.getItem('mi_loginAt');if(lat)tm.textContent='🕐 Login '+new Date(lat).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});}
+    if(_u.role==='superadmin'){
+      const panel=document.getElementById('onlineUsersPanel');
+      if(panel&&panel.style.display==='none'){
+        panel.style.display='block';
+        const url=localStorage.getItem('mi_erpUrl'),tok=localStorage.getItem('mi_erpToken')||window._erpToken||'';
+        if(url&&tok){
+          fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'getUsers',token:tok})})
+          .then(r=>r.json()).then(d=>{
+            if(!d.ok||!d.data)return;
+            const list=document.getElementById('onlineUsersList');
+            if(!list)return;
+            const rows=d.data.filter(u=>u.lastLogin).sort((a,b)=>new Date(b.lastLogin)-new Date(a.lastLogin)).slice(0,6);
+            list.innerHTML=rows.length?rows.map(u=>{
+              const t=new Date(u.lastLogin);
+              const diff=Math.floor((Date.now()-t)/60000);
+              const ago=diff<1?'เมื่อกี้':diff<60?diff+'น.ที่แล้ว':Math.floor(diff/60)+'ชม.ที่แล้ว';
+              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="font-size:11px">👤 '+(u.name||u.username)+'</span><span style="font-size:10px;color:#888">'+ago+'</span></div>';
+            }).join(''):'<div style="color:#666;font-size:11px">ไม่มีข้อมูล</div>';
+          }).catch(()=>{});
+        }
+      }
+    }
+  })();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
