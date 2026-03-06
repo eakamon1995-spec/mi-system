@@ -789,11 +789,22 @@ input[readonly]{background:var(--surface2);cursor:default;}
     </div>
   </div>
   <div id="sbLoginTime" style="font-size:10px;color:#777;margin-bottom:8px;padding-left:2px;"></div>
-  <div id="onlineUsersPanel" style="display:none;margin-bottom:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:7px 8px;">
-    <div style="font-size:10px;color:#a5b4fc;font-weight:600;margin-bottom:5px;letter-spacing:0.3px;">👥 ผู้ใช้ล่าสุด</div>
-    <div id="onlineUsersList" style="font-size:11px;color:#ccc;"></div>
+  <div id="sidebarUserPanel" style="padding:10px 12px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto;">
+  <div id="sidebarUserInfo" style="margin-bottom:8px;padding:8px 10px;background:rgba(255,255,255,0.05);border-radius:8px;display:none;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <div id="sidebarAvatar" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="sidebarName" style="font-size:12px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="sidebarRoleBadge" style="font-size:10px;margin-top:1px;"></div>
+      </div>
+    </div>
+    <div id="sidebarCurrentPage" style="font-size:10px;color:#94a3b8;padding-left:2px;"></div>
   </div>
-  <button onclick="doLogout()" style="width:100%;padding:7px 0;background:rgba(220,50,50,0.12);color:#ef9a9a;border:1px solid rgba(220,50,50,0.25);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:background 0.2s;" onmouseover="this.style.background='rgba(220,50,50,0.28)'" onmouseout="this.style.background='rgba(220,50,50,0.12)'">🚪 ออกจากระบบ</button>
+  <div id="superadminPanel" style="display:none;margin-bottom:8px;max-height:140px;overflow-y:auto;">
+    <div style="font-size:10px;color:#f59e0b;font-weight:600;letter-spacing:.5px;margin-bottom:5px;padding-left:2px;">👁 ONLINE USERS</div>
+    <div id="onlineUsersList" style="display:flex;flex-direction:column;gap:3px;"></div>
+  </div>
+  <button onclick="doLogout()" id="btnLogout" style="display:none;width:100%;padding:7px 0;background:rgba(220,50,50,0.15);color:#e57373;border:1px solid rgba(220,50,50,0.3);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:background .2s;" onmouseover="this.style.background='rgba(220,50,50,0.3)'" onmouseout="this.style.background='rgba(220,50,50,0.15)'">🚪 ออกจากระบบ</button>
 </div>
 <div class="sfooter">MI_record_PRICE_v1<br/>6,443 records · 1,158 POs</div>
 </aside>
@@ -2315,6 +2326,7 @@ async function doLogin() {
     erpToken = null; // local mode no token needed
     erpCurrentUser = { id: localMatch.id, username: localMatch.username, name: localMatch.name, role: localMatch.role, perms: ROLES[localMatch.role]?.perms || localMatch.perms || [] };
     localStorage.setItem('mi_erpUser', JSON.stringify(erpCurrentUser));
+    syncUsersToSheets(); try{loadOnlineUsers();}catch(e){}
     localStorage.setItem('mi_loginAt', new Date().toISOString());
     localStorage.removeItem('mi_erpToken');
     afterLogin();
@@ -2383,6 +2395,91 @@ function doLogout() {
   document.getElementById('liPass').value = '';
   document.getElementById('loginErr').style.display = 'none';
 }
+
+// ─── Sidebar User Panel ─────────────────────────────────────────────────
+const ROLE_LABELS = {superadmin:'🔑 Super Admin',admin:'⚙️ Admin',manager:'👔 Manager',purchase:'🛒 จัดซื้อ',viewer:'👁 Viewer'};
+const ROLE_COLORS = {superadmin:'#f59e0b',admin:'#818cf8',manager:'#34d399',purchase:'#60a5fa',viewer:'#94a3b8'};
+const PAGE_LABELS = {'dashboard':'Dashboard','po-register':'PO Register','create-po':'สร้าง PO','po-status':'PO Status Board','suppliers':'Suppliers','mi-records':'MI Records','km-records':'KM Records','agent-analytics':'Agent Analytics','stock-manager':'Stock','report-center':'Report','qc-dashboard':'QC','settings':'Settings','product-names':'Product Names','barcode-manager':'Barcode','import-data':'Import Data'};
+
+function updateSidebarPanel(pageName) {
+  const u = JSON.parse(localStorage.getItem('mi_erpUser')||'null');
+  if(!u) return;
+  const nameEl = document.getElementById('sidebarName');
+  const avatarEl = document.getElementById('sidebarAvatar');
+  const roleEl = document.getElementById('sidebarRoleBadge');
+  const pageEl = document.getElementById('sidebarCurrentPage');
+  const infoEl = document.getElementById('sidebarUserInfo');
+  const btnLogout = document.getElementById('btnLogout');
+  if(!nameEl) return;
+  infoEl.style.display = 'block';
+  btnLogout.style.display = 'block';
+  const initials = (u.name||u.username||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  avatarEl.textContent = initials;
+  avatarEl.style.background = 'linear-gradient(135deg,'+(ROLE_COLORS[u.role]||'#667eea')+',#1e1b4b)';
+  nameEl.textContent = u.name || u.username;
+  roleEl.textContent = ROLE_LABELS[u.role]||u.role;
+  roleEl.style.color = ROLE_COLORS[u.role]||'#94a3b8';
+  const pg = PAGE_LABELS[pageName]||pageName||'Dashboard';
+  pageEl.textContent = '📍 ' + pg;
+  // Record activity to AuditLog via API
+  try {
+    const token = localStorage.getItem('mi_token');
+    if(token) {
+      const url = localStorage.getItem('mi_erpUrl');
+      fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'logActivity',token,payload:{user:u.username,name:u.name,role:u.role,page:pg,ts:Date.now()}})
+      }).catch(()=>{});
+    }
+  } catch(e){}
+  // Show online users panel for superadmin
+  const saPanel = document.getElementById('superadminPanel');
+  if(saPanel) saPanel.style.display = (u.role==='superadmin')?'block':'none';
+  if(u.role==='superadmin') loadOnlineUsers();
+}
+
+function loadOnlineUsers() {
+  const token = localStorage.getItem('mi_token');
+  const url = localStorage.getItem('mi_erpUrl');
+  if(!token||!url) return;
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'getActivity',token})
+  }).then(r=>r.json()).then(d=>{
+    if(!d.ok||!d.data) return;
+    const list = document.getElementById('onlineUsersList');
+    if(!list) return;
+    const now = Date.now();
+    const active = d.data.filter(a => now - a.ts < 30*60*1000); // last 30 min
+    list.innerHTML = active.length ? active.map(a=>{
+      const mins = Math.round((now-a.ts)/60000);
+      const ago = mins<1?'just now':mins+'m ago';
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 6px;background:rgba(255,255,255,0.04);border-radius:5px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:${mins<5?'#22c55e':'#f59e0b'};flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <span style="font-size:11px;color:#e2e8f0;font-weight:500;">${a.name||a.user}</span>
+          <span style="font-size:10px;color:#64748b;margin-left:4px;">${a.page}</span>
+        </div>
+        <span style="font-size:9px;color:#475569;">${ago}</span>
+      </div>`;
+    }).join('') : '<div style="font-size:10px;color:#475569;padding:4px 6px;">No active users</div>';
+  }).catch(()=>{});
+}
+
+function syncUsersToSheets() {
+  // Call this when superadmin logs in to sync localStorage users to Sheets
+  const u = JSON.parse(localStorage.getItem('mi_erpUser')||'null');
+  if(!u||u.role!=='superadmin') return;
+  const token = localStorage.getItem('mi_token');
+  const url = localStorage.getItem('mi_erpUrl');
+  const users = JSON.parse(localStorage.getItem('mi_users')||'[]');
+  if(!token||!url||!users.length) return;
+  users.forEach(usr => {
+    fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'saveUser',token,payload:usr})
+    }).catch(()=>{});
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────
+
 
 // Offline / Skip Login (ใช้แบบ local ไม่ sync)
 function skipLogin() {
@@ -2510,6 +2607,7 @@ function startCountdown(sec) {
 }
 
 async function pollSync() {
+  if(document.getElementById("superadminPanel")&&document.getElementById("superadminPanel").style.display!=="none") loadOnlineUsers();
   if (!erpToken || !erpApiUrl) {
     setSyncStatus('offline');
     return;
@@ -2784,6 +2882,7 @@ function updateThemeUI(t){
 // NAV
 // ============================
 function goPage(id,el){
+  updateSidebarPanel(arguments[0]||"");
   // ── Sidebar user card ────────────────────────────────────
   (function(){
     const _u=JSON.parse(localStorage.getItem('mi_erpUser')||'{}');
