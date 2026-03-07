@@ -2289,7 +2289,7 @@ const PO_STATUS_COLORS = {draft:'#888',approved:'#2980b9',production:'#e67e22',s
 // ============================
 let erpToken = localStorage.getItem('mi_erpToken') || null;
 let erpCurrentUser = JSON.parse(localStorage.getItem('mi_erpUser') || 'null');
-let erpApiUrl = localStorage.getItem('mi_erpUrl') || 'https://script.google.com/macros/s/AKfycbzuwCecWhWT5_RaRj7fGRz7NLe4QD2VMiMps-WSPxUezvQZYW4b_m_Hjp-6SW7G6b0hYg/exec';
+let erpApiUrl = localStorage.getItem('mi_erpUrl') || 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
 let erpSyncing = false;
 
 // ── API call helper ──────────────────────────────────────────
@@ -2812,7 +2812,7 @@ function isAdmin() { return erpCurrentUser && erpCurrentUser.role === 'admin'; }
 // ── Auto-restore session ──────────────────────────────────────
 function erpInit() {
   // Restore API URL
-  const savedUrl = localStorage.getItem('mi_erpUrl') || 'https://script.google.com/macros/s/AKfycbzuwCecWhWT5_RaRj7fGRz7NLe4QD2VMiMps-WSPxUezvQZYW4b_m_Hjp-6SW7G6b0hYg/exec';
+  const savedUrl = localStorage.getItem('mi_erpUrl') || 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
   erpApiUrl = savedUrl;
 
   // Update erpApiUrlInput if on settings
