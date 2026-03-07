@@ -1247,7 +1247,18 @@ input[readonly]{background:var(--surface2);cursor:default;}
               <select id="poDept"><option value="">-- Select --</option><option>Purchasing</option><option>Warehouse</option><option>Production</option><option>IT</option><option>Marketing</option></select>
             </div>
             <div class="fg"><label>Expected Delivery Date</label><input type="date" id="poDelivery"></div>
-            <div class="fg"><label>Currency Rate (฿/¥)</label><input type="number" id="poRate" value="4.9" step="0.01" placeholder="4.90"></div>
+            <div class="fg">
+              <label>Currency Rate (฿/¥)
+                <span id="rateStatus" style="font-weight:400;font-size:11px;color:var(--muted);margin-left:6px"></span>
+              </label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="number" id="poRate" value="4.9" step="0.01" placeholder="4.90" style="flex:1">
+                <button type="button" id="btnFetchRate" onclick="fetchLiveRate()" title="ดึง Rate รายวันจาก Yahoo Finance"
+                  style="padding:6px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap">
+                  🔄 Live
+                </button>
+              </div>
+            </div>
             <div class="fg"><label>Commission % (com%)</label><input type="number" id="poCom" value="2" step="0.1" min="0" max="100" placeholder="2.00" oninput="onComChange()"></div>
             <div class="fg" style="grid-column:span 3"><label>Remarks / Notes</label><textarea id="poRemark" placeholder="Special conditions, notes..."></textarea></div>
           </div>
@@ -4695,6 +4706,37 @@ async function autoTranslateThai(engInput){
     // Save to local library + localStorage
     prodEngLib[engKey]={thai, material:matInp?matInp.value.trim():''};
     saveProdEngLib();
+  }
+}
+
+// ── Live Currency Rate from Yahoo Finance (via Apps Script proxy) ──
+async function fetchLiveRate(){
+  const btn=document.getElementById('btnFetchRate');
+  const statusEl=document.getElementById('rateStatus');
+  if(btn){ btn.disabled=true; btn.textContent='⏳...'; }
+  if(statusEl) statusEl.textContent='กำลังโหลด...';
+  try{
+    const r=await apiCall('getCNYRate');
+    if(r.ok && r.rate){
+      const rate=parseFloat(r.rate).toFixed(4);
+      document.getElementById('poRate').value=rate;
+      // Format update time
+      const dt=r.updated ? new Date(r.updated) : new Date();
+      const timeStr=dt.toLocaleString('th-TH',{timeZone:'Asia/Bangkok',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      if(statusEl) statusEl.textContent='✅ อัพเดท '+timeStr;
+      // Recalculate if calc function exists
+      if(typeof calcAll==='function') calcAll();
+      else document.querySelectorAll('.ex-work').forEach(el=>{ if(typeof calcRow==='function') calcRow(el); });
+      toast('💱 Rate ล่าสุด: ¥1 = ฿'+rate,'s');
+    } else {
+      if(statusEl) statusEl.textContent='❌ โหลดไม่ได้';
+      toast('ดึง Rate ไม่ได้: '+(r.error||'unknown'),'e');
+    }
+  }catch(e){
+    if(statusEl) statusEl.textContent='❌ Error';
+    toast('Rate fetch error: '+e.message,'e');
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='🔄 Live'; }
   }
 }
 
