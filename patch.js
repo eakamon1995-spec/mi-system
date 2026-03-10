@@ -1,51 +1,45 @@
-// patch.js - MI System patches
+// patch.js - MI System patches v3
 
 (function() {
   'use strict';
 
   // Fix 1: saveP0 - include material in items.push()
-  const _orig = window.saveP0;
+  var _orig = window.saveP0;
   window.saveP0 = function() {
-    const origPush = Array.prototype.push;
+    var origPush = Array.prototype.push;
     Array.prototype.push = function(obj) {
       if (obj && typeof obj === 'object' && 'seq' in obj && 'engName' in obj && !('material' in obj)) {
-        const rows = document.querySelectorAll('#poItemsTable tbody tr');
-        for (const tr of rows) {
-          if (tr.querySelector('.po-engname')?.value === obj.engName) {
-            obj.material = tr.querySelector('.po-material')?.value || '';
+        var rows = document.querySelectorAll('#poItemsTable tbody tr');
+        for (var i = 0; i < rows.length; i++) {
+          var tr = rows[i];
+          if (tr.querySelector('.po-engname') && tr.querySelector('.po-engname').value === obj.engName) {
+            var matEl = tr.querySelector('.po-material');
+            obj.material = matEl ? matEl.value : '';
             break;
           }
         }
       }
       return origPush.apply(this, arguments);
     };
-    const result = _orig ? _orig.apply(this, arguments) : undefined;
+    var result = _orig ? _orig.apply(this, arguments) : undefined;
     Array.prototype.push = origPush;
     return result;
   };
 
-  // Fix 2: printSinglePO - add material td, fix colspan 11->12
-  const _origPrint = window.printSinglePO;
-  window.printSinglePO = function(id) {
-    const origOpen = window.open;
-    window.open = function(url, target, features) {
-      const win = origOpen.call(window, url, target, features);
-      window.open = origOpen;
-      return win;
-    };
-    // Monkey-patch document.write to intercept HTML
-    const origWrite = Document.prototype.write;
-    Document.prototype.write = function(html) {
-      // Add material td after engName td
-      html = html.replace(/<td>\${it\.engName\|\|''}\/<\/td>/g,
-        '<td>${it.engName||\'\'}</td><td>${it.material||\'\'}</td>');
-      // Fix colspan
-      html = html.replace(/colspan=\"11\"/, 'colspan="12"');
-      Document.prototype.write = origWrite;
-      return origWrite.call(this, html);
-    };
-    return _origPrint ? _origPrint.call(window, id) : undefined;
-  };
+  // Fix 2: printSinglePO - patch via toString/eval
+  function patchPrintFn() {
+    if (!window.printSinglePO) { setTimeout(patchPrintFn, 200); return; }
+    var src = window.printSinglePO.toString();
+    src = src.replace("<td>${it.engName||''}</td>",
+      "<td>${it.engName||''}</td>\n      <td>${it.material||''}</td>");
+    src = src.replace('colspan="11"', 'colspan="12"');
+    var match = src.match(/^function\s+printSinglePO\s*\(([^)]*)\)\s*\{([\s\S]*)\}$/);
+    if (match) {
+      window.printSinglePO = new Function(match[1], match[2]);
+      console.log('[patch.js] printSinglePO patched OK');
+    }
+  }
+  patchPrintFn();
 
-  console.log('[patch.js] loaded OK v2');
+  console.log('[patch.js] loaded v3');
 })();
