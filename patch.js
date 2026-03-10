@@ -1,10 +1,9 @@
 // patch.js - MI System patches
-// All future fixes go here. Never touch index.html.
 
 (function() {
   'use strict';
 
-  // Fix saveP0: include material in items.push()
+  // Fix 1: saveP0 - include material in items.push()
   const _orig = window.saveP0;
   window.saveP0 = function() {
     const origPush = Array.prototype.push;
@@ -25,6 +24,28 @@
     return result;
   };
 
-  console.log('[patch.js] loaded OK');
-})();
+  // Fix 2: printSinglePO - add material td, fix colspan 11->12
+  const _origPrint = window.printSinglePO;
+  window.printSinglePO = function(id) {
+    const origOpen = window.open;
+    window.open = function(url, target, features) {
+      const win = origOpen.call(window, url, target, features);
+      window.open = origOpen;
+      return win;
+    };
+    // Monkey-patch document.write to intercept HTML
+    const origWrite = Document.prototype.write;
+    Document.prototype.write = function(html) {
+      // Add material td after engName td
+      html = html.replace(/<td>\${it\.engName\|\|''}\/<\/td>/g,
+        '<td>${it.engName||\'\'}</td><td>${it.material||\'\'}</td>');
+      // Fix colspan
+      html = html.replace(/colspan=\"11\"/, 'colspan="12"');
+      Document.prototype.write = origWrite;
+      return origWrite.call(this, html);
+    };
+    return _origPrint ? _origPrint.call(window, id) : undefined;
+  };
 
+  console.log('[patch.js] loaded OK v2');
+})();
