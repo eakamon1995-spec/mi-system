@@ -3798,7 +3798,7 @@ function savePO(){
     const picEl=tr.querySelector('.po-pic-cell');
     const picData=picEl?picEl.getAttribute('data-pic')||'':'';
     if(!thaiName&&!engName&&!code) return;
-    items.push({seq:i+1,agent,code,bcPcs,bcCtn,fac,thaiName,engName,material,ex,p2,pcsCtn,ttCtn,ttPcs,ctnSize,ctnPrice,amount,delivDate,pack,remFac,remDesign,designRef,pic:picData});
+    items.push({seq:i+1,agent,code,bcPcs,bcCtn,fac,thaiName,engName,ex,p2,pcsCtn,ttCtn,ttPcs,ctnSize,ctnPrice,amount,delivDate,pack,remFac,remDesign,designRef,pic:picData});
   });
   if(!items.length){toast('Please add at least 1 item','e');return;}
   const rate=parseFloat(document.getElementById('poRate').value)||4.9;
@@ -4056,7 +4056,7 @@ function exportPOExcel(){
   wsData.push(new Array(22).fill(null));
   wsData.push(new Array(22).fill(null));
   // Row 7: Headers (index 6)
-  wsData.push(['No.','Agent','Code','Barcode for pcs','Barcode for carton','FAC code','Thai Name','Eng Name','Material','Ex work',`Price + com${parseFloat(document.getElementById('poCom')?.value)||2}%`,'Pcs/ctn','Tt ctn','Tt pcs','Ctn size','Amount','Ctn price','Delivery Date','Pack','Remark for factory','Remark for design','Design Ref.','Picture']);
+  wsData.push(['No.','Agent','Code','Barcode for pcs','Barcode for carton','FAC code','Thai Name','Eng Name','Ex work',`Price + com${parseFloat(document.getElementById('poCom')?.value)||2}%`,'Pcs/ctn','Tt ctn','Tt pcs','Ctn size','Amount','Ctn price','Delivery Date','Pack','Remark for factory','Remark for design','Design Ref.','Picture']);
   // Rows 8+: items (index 7+)
   const dataStartRow=8;
   const comVal=(parseFloat(document.getElementById('poCom')?.value)||2)/100;
@@ -4071,15 +4071,14 @@ function exportPOExcel(){
       it.fac,
       it.thaiName,
       it.engName,
-      it.material||'',
       it.ex,
-      {f:`J${r}*(1+${comVal})`},  // K = Price+com%
+      {f:`I${r}*(1+${comVal})`},  // J = Price+com%
       it.pcsCtn,
       it.ttCtn,
-      {f:`L${r}*M${r}`},          // N = Tt pcs
+      {f:`K${r}*L${r}`},          // M = Tt pcs
       it.ctnSize,
-      {f:`M${r}*Q${r}`},          // P = Amount (ttCtn * ctnPrice)
-      {f:`K${r}*L${r}`},          // Q = Ctn price
+      {f:`L${r}*P${r}`},          // O = Amount (ttCtn * ctnPrice)
+      {f:`J${r}*K${r}`},          // P = Ctn price
       it.delivDate,
       it.pack,
       it.remFac,
@@ -4093,17 +4092,17 @@ function exportPOExcel(){
   wsData.push([
     null,null,null,null,null,null,null,null,
     null,null,null,
+    {f:`SUM(L${dataStartRow}:L${totRow-1})`},
     {f:`SUM(M${dataStartRow}:M${totRow-1})`},
-    {f:`SUM(N${dataStartRow}:N${totRow-1})`},
     'Total',
-    {f:`SUM(P${dataStartRow}:P${totRow-1})`},
+    {f:`SUM(O${dataStartRow}:O${totRow-1})`},
     null,null,null,null,null,null,null
   ]);
   const ws=XLSX.utils.aoa_to_sheet(wsData,{cellDates:true});
   // Column widths (matching original)
   ws['!cols']=[
     {wch:8},{wch:14},{wch:28},{wch:39},{wch:39},{wch:27},{wch:40},{wch:40},
-    {wch:20},{wch:15},{wch:15},{wch:11},{wch:9},{wch:15},{wch:10},{wch:18},{wch:18},
+    {wch:15},{wch:15},{wch:11},{wch:9},{wch:15},{wch:10},{wch:18},{wch:18},
     {wch:19},{wch:12},{wch:37},{wch:37},{wch:25},{wch:14}
   ];
   // Merged cells for company header
@@ -4113,7 +4112,7 @@ function exportPOExcel(){
     {s:{r:2,c:0},e:{r:2,c:21}},
   ];
   // Number formats for data rows
-  const fmtMap={J:'0.000',K:'0.000',L:'###,###,##0',M:'###,###,##0',N:'###,###,##0',O:'0.000',P:'###,###,##0.0000',Q:'#,##0.0000'};
+  const fmtMap={I:'0.000',J:'0.000',K:'###,###,##0',L:'###,###,##0',M:'###,###,##0',N:'0.000',O:'###,###,##0.0000',P:'#,##0.0000'};
   ['D','E'].forEach(col=>{ // barcode columns
     items.forEach((_,i)=>{
       const cellRef=col+(dataStartRow+i);
@@ -4128,12 +4127,12 @@ function exportPOExcel(){
     });
   });
   // Header row format — bold blue background
-  ['A7','B7','C7','D7','E7','F7','G7','H7','I7','J7','K7','L7','M7','N7','O7','P7','Q7','R7','S7','T7','U7','V7','W7'].forEach(ref=>{
+  ['A7','B7','C7','D7','E7','F7','G7','H7','I7','J7','K7','L7','M7','N7','O7','P7','Q7','R7','S7','T7','U7','V7'].forEach(ref=>{
     if(ws[ref]) ws[ref].s={font:{bold:true},fill:{fgColor:{rgb:'C9DAF8'}},alignment:{horizontal:'center',wrapText:true}};
   });
   // PO info at top right
-  const poInfoCell='W4'; ws[poInfoCell]={t:'s',v:`PO No. : ${poNum}`,s:{fill:{fgColor:{rgb:'FFFF00'}}}};
-  const dateCell='W5'; ws[dateCell]={t:'s',v:`Date : ${dateFormatted}`,s:{fill:{fgColor:{rgb:'FFFF00'}}}};
+  const poInfoCell='V4'; ws[poInfoCell]={t:'s',v:`PO No. : ${poNum}`,s:{fill:{fgColor:{rgb:'FFFF00'}}}};
+  const dateCell='V5'; ws[dateCell]={t:'s',v:`Date : ${dateFormatted}`,s:{fill:{fgColor:{rgb:'FFFF00'}}}};
   XLSX.utils.book_append_sheet(wb,ws,poNum.slice(0,31));
   XLSX.writeFile(wb,`${poNum}.xlsx`);
   toast(`✓ Exported ${poNum}.xlsx`,'s');
@@ -4269,18 +4268,18 @@ function exportSinglePO(id){
   wsData.push([sc.name?`Supplier: ${sc.name}`:''].concat(new Array(21).fill(null)));
   wsData.push([(sc.contact?`Contact: ${sc.contact}  `:'')+( sc.wechat?`WeChat: ${sc.wechat}  `:'')+( sc.phone?`Tel: ${sc.phone}`:'')||''].concat(new Array(21).fill(null)));
   wsData.push([(sc.payment?`Payment: ${sc.payment}`:'')||''].concat(new Array(21).fill(null)));
-  wsData.push(['No.','Agent','Code','Barcode for pcs','Barcode for carton','FAC code','Thai Name','Eng Name','Material','Ex work',`Price + com${po.com!=null?po.com:2}%`,'Pcs/ctn','Tt ctn','Tt pcs','Ctn size','Amount','Ctn price','Delivery Date','Pack','Remark for factory','Remark for design','Design Ref.','Picture']);
+  wsData.push(['No.','Agent','Code','Barcode for pcs','Barcode for carton','FAC code','Thai Name','Eng Name','Ex work',`Price + com${po.com!=null?po.com:2}%`,'Pcs/ctn','Tt ctn','Tt pcs','Ctn size','Amount','Ctn price','Delivery Date','Pack','Remark for factory','Remark for design','Design Ref.','Picture']);
   const comVal=(po.com!=null?po.com:2)/100;
   (po.items||[]).forEach((it,i)=>{
     const r=i+dataStartRow;
-    wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.material||'',it.ex,{f:`J${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`L${r}*M${r}`},it.ctnSize,{f:`M${r}*Q${r}`},{f:`K${r}*L${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
+    wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.ex,{f:`I${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`K${r}*L${r}`},it.ctnSize,{f:`L${r}*P${r}`},{f:`J${r}*K${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
   });
   const totRow=dataStartRow+(po.items?.length||0);
-  wsData.push([null,null,null,null,null,null,null,null,null,null,null,{f:`SUM(M${dataStartRow}:M${totRow-1})`},{f:`SUM(M${dataStartRow}:M${totRow-1})`},'Total',{f:`SUM(P${dataStartRow}:P${totRow-1})`}]);
+  wsData.push([null,null,null,null,null,null,null,null,null,null,null,{f:`SUM(L${dataStartRow}:L${totRow-1})`},{f:`SUM(M${dataStartRow}:M${totRow-1})`},'Total',{f:`SUM(O${dataStartRow}:O${totRow-1})`}]);
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols']=[{wch:8},{wch:14},{wch:28},{wch:39},{wch:39},{wch:27},{wch:40},{wch:40},{wch:15},{wch:15},{wch:11},{wch:9},{wch:15},{wch:10},{wch:18},{wch:18},{wch:19},{wch:12},{wch:37},{wch:37},{wch:25},{wch:14}];
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:22}},{s:{r:1,c:0},e:{r:1,c:22}},{s:{r:2,c:0},e:{r:2,c:22}}];
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:21}},{s:{r:1,c:0},e:{r:1,c:21}},{s:{r:2,c:0},e:{r:2,c:21}}];
   const dateFormatted=po.date?new Date(po.date).toLocaleDateString('en-GB'):'-';
   ws['V4']={t:'s',v:`PO No. : ${po.id}`};
   ws['V5']={t:'s',v:`Date : ${dateFormatted}`};
@@ -4326,7 +4325,6 @@ function printSinglePO(id){
       <td>${it.fac||''}</td>
       <td>${it.thaiName||''}</td>
       <td>${it.engName||''}</td>
-      <td>${it.material||''}</td>
       <td style="text-align:right">¥${ex.toFixed(3)}</td>
       <td style="text-align:right">¥${p2.toFixed(3)}</td>
       <td style="text-align:center">${it.pcsCtn||0}</td>
@@ -4438,7 +4436,7 @@ function printSinglePO(id){
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
     <tfoot><tr class="tfoot">
-      <td colspan="12" style="text-align:right;padding-right:8px">Total :</td>
+      <td colspan="11" style="text-align:right;padding-right:8px">Total :</td>
       <td style="text-align:center;font-family:'IBM Plex Mono',monospace">${totalCtn}</td>
       <td style="text-align:center;font-family:'IBM Plex Mono',monospace">${totalPcs.toLocaleString()}</td>
       <td></td>
@@ -4469,7 +4467,6 @@ function printSinglePO(id){
   </div>
   <div id="debugLog" style="padding:8px 10px;overflow-y:auto;max-height:250px;color:#e2e8f0;line-height:1.8"></div>
 </div>
-<script src="patch.js"></script>
 </body></html>`);
   w.document.close();
 }
@@ -8180,5 +8177,6 @@ renderDashboard();
 </div>
 
 <!-- ===== QC CHECK MODAL ===== -->
+<script src="patch.js"></script>
 </body>
 </html>
