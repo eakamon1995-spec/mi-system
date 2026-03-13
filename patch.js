@@ -1,8 +1,8 @@
-// patch.js v10
+// patch.js v11 - apiCall Promise fix
 (function () {
   'use strict';
 
-  // -- 1. CNY Rate: fetch direct from frankfurter.app --
+  // -- 1. CNY Rate --
   var _rateCache = {};
   function fetchRate(date, cb) {
     var d = (date || new Date().toISOString()).substring(0, 10);
@@ -29,7 +29,7 @@
         fetchRate(payload && payload.date, function(r) {
           if (typeof cb === 'function') cb({ ok: r.ok, rate: r.rate, date: r.date });
         });
-        return;
+        return Promise.resolve({ ok: r.ok, rate: r.rate, date: r.date });
       }
       return _orig.apply(this, arguments);
     };
@@ -48,9 +48,9 @@
         if (obj && 'engName' in obj && !('material' in obj)) {
           var rows = document.querySelectorAll('#poItemsBody tr');
           for (var i = 0; i < rows.length; i++) {
-            var en = rows[i].querySelector('.eng-name, .po-engname, [data-field="engName"]');
+            var en = rows[i].querySelector('.eng-name,.po-engname,[data-field="engName"]');
             if (en && en.value === obj.engName) {
-              var mat = rows[i].querySelector('.material, .po-material, [data-field="material"]');
+              var mat = rows[i].querySelector('.material,.po-material,[data-field="material"]');
               obj.material = mat ? mat.value : '';
               break;
             }
@@ -108,8 +108,8 @@
 
     var totalAmt = 0, totalCtn = 0, totalPcs = 0;
     var tbHtml = (po.items || []).map(function(it) {
-      var ex  = parseFloat(it.ex) || 0;
-      var p2  = parseFloat(it.p2) || (ex * (1 + comVal));
+      var ex  = parseFloat(it.ex)  || 0;
+      var p2  = parseFloat(it.p2)  || (ex * (1 + comVal));
       var amt = parseFloat(it.amount) || 0;
       totalAmt += amt;
       totalCtn += parseInt(it.ttCtn) || 0;
@@ -117,8 +117,8 @@
       var picHtml = it.pic
         ? '<img src="' + it.pic + '" style="max-width:58px;max-height:52px;display:block;margin:auto" onerror="this.style.display='none'">'
         : '&#8212;';
-      var delivIt = it.delivDate && !isNaN(new Date(it.delivDate))
-        ? new Date(it.delivDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : (it.delivDate || '');
+      var delivIt = it.delivDate
+        ? new Date(it.delivDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '';
       return '<tr>' + [
         it.seq || '', it.agent || '', picHtml,
         '<span style="font-weight:600;color:#1a6cad">' + (it.code || '') + '</span>',
@@ -190,14 +190,13 @@
       + '</body></html>';
   }
 
-  // -- 5. printSinglePO: fetch PO via apiCall directly --
+  // -- 5. printSinglePO: use Promise-based apiCall --
   function hookPrint() {
     if (typeof window.printSinglePO !== 'function') { setTimeout(hookPrint, 300); return; }
     if (window._patchPrintDone) return;
     window._patchPrintDone = true;
     window.printSinglePO = function(id) {
-      if (typeof window.apiCall !== 'function') { alert('apiCall not ready'); return; }
-      window.apiCall('getPOs', {}, function(res) {
+      window.apiCall('getPOs', {}).then(function(res) {
         if (!res || !res.ok) { alert('Cannot load POs: ' + (res && res.error || 'unknown')); return; }
         var po = (res.data || []).find(function(p) { return p.id === id; });
         if (!po) { alert('PO not found: ' + id); return; }
@@ -213,11 +212,11 @@
           win.document.write(html);
           win.document.close();
         });
-      });
+      }).catch(function(e) { alert('Error: ' + e.message); });
     };
-    console.log('[patch.js v10] printSinglePO ready');
+    console.log('[patch.js v11] printSinglePO ready');
   }
   hookPrint();
 
-  console.log('[patch.js v10] loaded');
+  console.log('[patch.js v11] loaded');
 })();
