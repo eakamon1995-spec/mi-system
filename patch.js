@@ -1,4 +1,4 @@
-// patch.js v11 - apiCall Promise fix
+// patch.js v12 - savePO material via apiCall intercept
 (function () {
   'use strict';
 
@@ -19,52 +19,41 @@
       .catch(function() { cb({ rate: 'N/A', date: d, ok: false }); });
   }
 
-  // -- 2. intercept apiCall getCNYRate --
-  function hookApiCall() {
-    if (typeof window.apiCall !== 'function') { setTimeout(hookApiCall, 200); return; }
-    if (window._patchApiDone) return;
-    var _orig = window.apiCall;
+  // -- 2. placeholder (merged into hookSaveViaApi below) --
+
+  // -- 3. intercept apiCall savePO to inject material from DOM --
+  function hookSaveViaApi() {
+    if (typeof window.apiCall !== 'function') { setTimeout(hookSaveViaApi, 200); return; }
+    if (window._patchSaveDone) return;
+    var _origApi = window.apiCall;
     window.apiCall = function(action, payload, cb) {
       if (action === 'getCNYRate') {
+        var _r = { rate: 'N/A', date: (payload && payload.date) || new Date().toISOString().substring(0,10), ok: false };
         fetchRate(payload && payload.date, function(r) {
           if (typeof cb === 'function') cb({ ok: r.ok, rate: r.rate, date: r.date });
         });
-        return Promise.resolve({ ok: r.ok, rate: r.rate, date: r.date });
+        return Promise.resolve(_r);
       }
-      return _orig.apply(this, arguments);
-    };
-    window._patchApiDone = true;
-  }
-  hookApiCall();
-
-  // -- 3. savePO: capture material from DOM --
-  function hookSave() {
-    if (typeof window.savePO !== 'function') { setTimeout(hookSave, 200); return; }
-    if (window._patchSaveDone) return;
-    var _origSave = window.savePO;
-    window.savePO = function() {
-      var _push = Array.prototype.push;
-      Array.prototype.push = function(obj) {
-        if (obj && 'engName' in obj && !('material' in obj)) {
-          var rows = document.querySelectorAll('#poItemsBody tr');
+      if (action === 'savePO' && payload && payload.items) {
+        var rows = document.querySelectorAll('#poItemsBody tr');
+        payload.items.forEach(function(item) {
           for (var i = 0; i < rows.length; i++) {
-            var en = rows[i].querySelector('.eng-name,.po-engname,[data-field="engName"]');
-            if (en && en.value === obj.engName) {
-              var mat = rows[i].querySelector('.material,.po-material,[data-field="material"]');
-              obj.material = mat ? mat.value : '';
+            var en = rows[i].querySelector('.po-engname');
+            if (en && en.value === item.engName) {
+              var mat = rows[i].querySelector('.po-material');
+              item.material = mat ? mat.value : '';
               break;
             }
           }
-        }
-        return _push.apply(this, arguments);
-      };
-      var res = _origSave ? _origSave.apply(this, arguments) : undefined;
-      Array.prototype.push = _push;
-      return res;
+        });
+      }
+      return _origApi.apply(this, arguments);
     };
+    window._patchApiDone = true;
     window._patchSaveDone = true;
+    console.log('[patch.js v12] savePO material hook ready');
   }
-  hookSave();
+  hookSaveViaApi();
 
   // -- 4. buildPrintHTML --
   function buildPrintHTML(po, sc, rateStr, rateDate) {
@@ -214,9 +203,9 @@
         });
       }).catch(function(e) { alert('Error: ' + e.message); });
     };
-    console.log('[patch.js v11] printSinglePO ready');
+    console.log('[patch.js v12] printSinglePO ready');
   }
   hookPrint();
 
-  console.log('[patch.js v11] loaded');
+  console.log('[patch.js v12] loaded');
 })();
