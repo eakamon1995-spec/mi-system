@@ -4790,16 +4790,6 @@ function saveProductNameToBackend(eng, thai, material){
 
 // Also save material when user blurs from material field
 function saveMaterialToEngLib(matInput){
-  // ✅ auto-save PO ทุกครั้งที่ material เปลี่ยน (debounced 600ms)
-  clearTimeout(window._matDebounce);
-  window._matDebounce = setTimeout(() => {
-    const btn = document.querySelector('button[onclick*="savePO"]') ||
-                document.querySelector('[data-action="savePO"]') ||
-                document.querySelector('#btnSave');
-    if (btn) { btn.click(); }
-    else if (typeof handleSavePO === 'function') { handleSavePO(); }
-    else if (typeof savePO === 'function') { savePO(); }
-  }, 600);
   const tr=matInput.closest('tr');
   const eng=(tr.querySelector('.po-engname')?.value||'').trim();
   const mat=matInput.value.trim();
