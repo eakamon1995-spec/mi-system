@@ -3566,7 +3566,7 @@ function addPOItem(){
       </div>
     </td>
     <td><input type="text" placeholder="English name..." style="min-width:200px;width:100%" class="po-engname" onblur="autoTranslateThai(this)"></td>
-    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" contenteditable="true" onblur="saveMaterialToEngLib(this)" oninput="saveMaterialToEngLib(this)"></td>
+    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" onblur="saveMaterialToEngLib(this)" oninput="saveMaterialToEngLib(this)"></td>
     <td class="cell-green"><input type="number" placeholder="0.000" step="0.001" min="0" style="width:72px" class="ex-work" oninput="calcRow(this)"></td>
     <td class="cell-yellow auto" id="p2_${idx}">—</td>
     <td class="cell-yellow"><input type="number" placeholder="240" step="1" min="0" style="width:62px" class="pcs-ctn" oninput="calcRow(this)"></td>
@@ -4215,7 +4215,7 @@ function editPO(id){
       tr.querySelector('.bc-ctn').value=it.bcCtn||'';
       tr.querySelector('.fac-input').value=it.fac||'';
       tr.querySelector('.po-thainame').value=it.thaiName||'';
-      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material'))tr.querySelector('.po-material').value=it.material||'';
+      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material')){const _lsKey='_mat_'+(po?.id||'')+'_'+(it.seq||'');tr.querySelector('.po-material').value=it.material||localStorage.getItem(_lsKey)||'';}
       tr.querySelector('.ex-work').value=it.ex||'';
       tr.querySelector('.pcs-ctn').value=it.pcsCtn||'';
       tr.querySelector('.tt-ctn').value=it.ttCtn||'';
