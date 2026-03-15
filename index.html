@@ -4073,13 +4073,13 @@ function exportPOExcel(){
       it.engName,
       it.material,
       it.ex,
-      {f:`I${r}*(1+${comVal})`},  // J = Price+com%
+      {f:`J${r}*(1+${comVal})`},  // J = Price+com%
       it.pcsCtn,
       it.ttCtn,
-      {f:`K${r}*L${r}`},          // M = Tt pcs
+      {f:`L${r}*M${r}`},          // M = Tt pcs
       it.ctnSize,
-      {f:`L${r}*P${r}`},          // O = Amount (ttCtn * ctnPrice)
-      {f:`J${r}*K${r}`},          // P = Ctn price
+      {f:`N${r}*K${r}`},          // O = Amount (ttCtn * ctnPrice)
+      {f:`P${r}/M${r}`},          // P = Ctn price
       it.delivDate,
       it.pack,
       it.remFac,
@@ -4273,7 +4273,7 @@ function exportSinglePO(id){
   const comVal=(po.com!=null?po.com:2)/100;
   (po.items||[]).forEach((it,i)=>{
     const r=i+dataStartRow;
-    wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.material,it.ex,{f:`I${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`K${r}*L${r}`},it.ctnSize,{f:`L${r}*P${r}`},{f:`J${r}*K${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
+    wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.material,it.ex,{f:`J${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`L${r}*M${r}`},it.ctnSize,{f:`N${r}*K${r}`},{f:`P${r}/M${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
   });
   const totRow=dataStartRow+(po.items?.length||0);
   wsData.push([null,null,null,null,null,null,null,null,null,null,null,{f:`SUM(L${dataStartRow}:L${totRow-1})`},{f:`SUM(M${dataStartRow}:M${totRow-1})`},'Total',{f:`SUM(O${dataStartRow}:O${totRow-1})`}]);
@@ -4361,7 +4361,7 @@ function printSinglePO(id){
     .print-company-name{font-size:14pt;font-weight:800;color:#1a3a5c;letter-spacing:0.5px}
     .print-company-addr{font-size:7.5pt;color:#555;margin-top:3px;line-height:1.6}
     .print-po-no{font-size:14pt;font-weight:800;color:#1a3a5c;text-align:right;letter-spacing:1px}
-    .print-po-meta{font-size:8pt;color:#444;text-align:right;margin-top:3px;line-height:1.8}
+    .print-po-meta{font-size:8.5pt;color:#333;text-align:right;line-height:1.9;font-weight:500}
     /* ── Table ── */
     table{width:100%;border-collapse:collapse;margin-top:6px;font-size:7pt}
     thead tr{background:#1a3a5c;color:#fff}
@@ -4398,8 +4398,8 @@ function printSinglePO(id){
       <div class="co-name">V.R.TOYS Co., Ltd.</div>
       <div class="co-addr">25/103,116 M.6 Puttamonton 4, Kratumlom 22, Samparn, Nakornprathom 73220 Thailand<br>Tel. 02-8143775,9 &nbsp;Fax. 02-8143778</div>
     </div>
-    <div class="po-meta">
-      <div class="po-num">PO No. : ${po.id}</div>
+    <div class="po-meta" style="text-align:right">
+      <div class="po-num" style="font-size:13pt;font-weight:800;color:#1a3a5c;letter-spacing:1px">PO No. : ${po.id}</div>
       <div class="po-date">Date : ${dateFormatted}</div>
       ${po.deliveryDate?`<div class="po-date">Delivery : ${new Date(po.deliveryDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>`:''}
       ${po.department?`<div class="po-date">Dept : ${po.department}</div>`:''}
@@ -4460,7 +4460,7 @@ function printSinglePO(id){
     ${po.remark?`<span><b>Remark:</b> ${po.remark}</span>`:''}
   </div>
 
-  <div class="footer">MI Procurement System · V.R.TOYS Co., Ltd. · Generated ${new Date().toLocaleString('th-TH')}</div>
+  <div class="footer" style="text-align:center;margin-top:8px;padding-top:5px;border-top:0.5pt solid #ddd;font-size:6.5pt;color:#999">MI Procurement System · V.R.TOYS Co., Ltd. · Generated ${new Date().toLocaleString('th-TH')}</div>
   
 <!-- DEBUG PANEL (กด Ctrl+Shift+D เพื่อเปิด/ปิด) -->
 <div id="debugPanel" style="display:none;position:fixed;bottom:60px;right:16px;width:360px;max-height:300px;
