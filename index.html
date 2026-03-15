@@ -4325,10 +4325,11 @@ function printSinglePO(id){
       <td>${it.fac||''}</td>
       <td>${it.thaiName||''}</td>
       <td>${it.engName||''}</td>
+      <td>${it.material||''}</td>
       <td style="text-align:right">¥${ex.toFixed(3)}</td>
       <td style="text-align:right">¥${p2.toFixed(3)}</td>
       <td style="text-align:center">${it.pcsCtn||0}</td>
-      <td style="text-align:center">${it.ttCtn||0}</td>
+      <td style="text-align:center">${parseFloat((it.ttCtn||0).toFixed(3))}</td>
       <td style="text-align:center">${ttPcs}</td>
       <td style="text-align:center">${it.ctnSize||''}</td>
       <td style="text-align:right">¥${amt.toFixed(2)}</td>
