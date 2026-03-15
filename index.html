@@ -3798,7 +3798,7 @@ function savePO(){
     const picEl=tr.querySelector('.po-pic-cell');
     const picData=picEl?picEl.getAttribute('data-pic')||'':'';
     if(!thaiName&&!engName&&!code) return;
-    items.push({seq:i+1,agent,code,bcPcs,bcCtn,fac,thaiName,engName,ex,p2,pcsCtn,ttCtn,ttPcs,ctnSize,ctnPrice,amount,delivDate,pack,remFac,remDesign,designRef,pic:picData});
+    items.push({seq:i+1,agent,code,bcPcs,bcCtn,fac,thaiName,engName,material,ex,p2,pcsCtn,ttCtn,ttPcs,ctnSize,ctnPrice,amount,delivDate,pack,remFac,remDesign,designRef,pic:picData});
   });
   if(!items.length){toast('Please add at least 1 item','e');return;}
   const rate=parseFloat(document.getElementById('poRate').value)||4.9;
