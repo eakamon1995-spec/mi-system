@@ -3566,7 +3566,7 @@ function addPOItem(){
       </div>
     </td>
     <td><input type="text" placeholder="English name..." style="min-width:200px;width:100%" class="po-engname" onblur="autoTranslateThai(this)"></td>
-    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" onblur="saveMaterialToEngLib(this)"></td>
+    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" contenteditable="true" onblur="saveMaterialToEngLib(this)" oninput="saveMaterialToEngLib(this)"></td>
     <td class="cell-green"><input type="number" placeholder="0.000" step="0.001" min="0" style="width:72px" class="ex-work" oninput="calcRow(this)"></td>
     <td class="cell-yellow auto" id="p2_${idx}">—</td>
     <td class="cell-yellow"><input type="number" placeholder="240" step="1" min="0" style="width:62px" class="pcs-ctn" oninput="calcRow(this)"></td>
@@ -4273,7 +4273,7 @@ function exportSinglePO(id){
   const comVal=(po.com!=null?po.com:2)/100;
   (po.items||[]).forEach((it,i)=>{
     const r=i+dataStartRow;
-    wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.ex,{f:`I${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`K${r}*L${r}`},it.ctnSize,{f:`L${r}*P${r}`},{f:`J${r}*K${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
+    wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.material,it.ex,{f:`I${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`K${r}*L${r}`},it.ctnSize,{f:`L${r}*P${r}`},{f:`J${r}*K${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
   });
   const totRow=dataStartRow+(po.items?.length||0);
   wsData.push([null,null,null,null,null,null,null,null,null,null,null,{f:`SUM(L${dataStartRow}:L${totRow-1})`},{f:`SUM(M${dataStartRow}:M${totRow-1})`},'Total',{f:`SUM(O${dataStartRow}:O${totRow-1})`}]);
