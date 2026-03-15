@@ -3566,7 +3566,7 @@ function addPOItem(){
       </div>
     </td>
     <td><input type="text" placeholder="English name..." style="min-width:200px;width:100%" class="po-engname" onblur="autoTranslateThai(this)"></td>
-    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" onblur="saveMaterialToEngLib(this)" oninput="saveMaterialToEngLib(this)"></td>
+    <td><input type="text" placeholder="Material..." style="min-width:130px;width:100%" class="po-material" onblur="saveMaterialToEngLib(this)"></td>
     <td class="cell-green"><input type="number" placeholder="0.000" step="0.001" min="0" style="width:72px" class="ex-work" oninput="calcRow(this)"></td>
     <td class="cell-yellow auto" id="p2_${idx}">—</td>
     <td class="cell-yellow"><input type="number" placeholder="240" step="1" min="0" style="width:62px" class="pcs-ctn" oninput="calcRow(this)"></td>
@@ -4803,8 +4803,7 @@ function saveMaterialToEngLib(matInput){
     if(thai){ prodEngLib[key]={thai, material:mat}; saveProdEngLib(); }
   }
   // ✅ auto-save PO เมื่อ material เปลี่ยน
-  clearTimeout(window._matDebounce);
-  window._matDebounce = setTimeout(savePO, 800);
+  
 }
 
 // Called from Product Name modal translate button / blur
