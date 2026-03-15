@@ -4215,7 +4215,7 @@ function editPO(id){
       tr.querySelector('.bc-ctn').value=it.bcCtn||'';
       tr.querySelector('.fac-input').value=it.fac||'';
       tr.querySelector('.po-thainame').value=it.thaiName||'';
-      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material')){const _lsKey='_mat_'+(po?.id||'')+'_'+(it.seq||'');tr.querySelector('.po-material').value=it.material||localStorage.getItem(_lsKey)||'';}
+      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material'))tr.querySelector('.po-material').value=it.material||'';
       tr.querySelector('.ex-work').value=it.ex||'';
       tr.querySelector('.pcs-ctn').value=it.pcsCtn||'';
       tr.querySelector('.tt-ctn').value=it.ttCtn||'';
@@ -4803,7 +4803,8 @@ function saveMaterialToEngLib(matInput){
     if(thai){ prodEngLib[key]={thai, material:mat}; saveProdEngLib(); }
   }
   // ✅ auto-save PO เมื่อ material เปลี่ยน
-  
+  clearTimeout(window._matDebounce);
+  window._matDebounce = setTimeout(savePO, 800);
 }
 
 // Called from Product Name modal translate button / blur
