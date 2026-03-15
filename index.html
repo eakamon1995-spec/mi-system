@@ -3789,7 +3789,7 @@ function savePO(){
     const inputs=tr.querySelectorAll('input');
     const agent=inputs[0]?.value||'';const bcPcs=tr.querySelector('.bc-pcs')?.value||'';const bcCtn=tr.querySelector('.bc-ctn')?.value||'';
     const fac=tr.querySelector('.fac-input')?.value||'';
-    const thaiName=tr.querySelector('.po-thainame')?.value||'';const engName=tr.querySelector('.po-engname')?.value||'';const material=(tr.querySelector('.po-material')?.value||'').trim();
+    const thaiName=tr.querySelector('.po-thainame')?.value||'';const engName=tr.querySelector('.po-engname')?.value||'';const material=(tr.querySelector('.po-material')?.value||tr.querySelector('.po-material')?.getAttribute('data-loaded')||'').trim();
     const ctnSize=parseFloat(tr.querySelector('.ctn-size')?.value||0)||0;
     const delivDate=tr.querySelector('.deliv-date')?.value||'';
     const pack=tr.querySelector('.po-pack')?.value||'';
@@ -4215,7 +4215,12 @@ function editPO(id){
       tr.querySelector('.bc-ctn').value=it.bcCtn||'';
       tr.querySelector('.fac-input').value=it.fac||'';
       tr.querySelector('.po-thainame').value=it.thaiName||'';
-      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material'))tr.querySelector('.po-material').value=it.material||'';
+      tr.querySelector('.po-engname').value=it.engName||'';if(tr.querySelector('.po-material')){
+        const _matEl=tr.querySelector('.po-material');
+        const _matVal=it.material||'';
+        _matEl.value=_matVal;
+        if(_matVal) _matEl.setAttribute('data-loaded',_matVal);
+      }
       tr.querySelector('.ex-work').value=it.ex||'';
       tr.querySelector('.pcs-ctn').value=it.pcsCtn||'';
       tr.querySelector('.tt-ctn').value=it.ttCtn||'';
@@ -4792,7 +4797,8 @@ function saveProductNameToBackend(eng, thai, material){
 function saveMaterialToEngLib(matInput){
   const tr=matInput.closest('tr');
   const eng=(tr.querySelector('.po-engname')?.value||'').trim();
-  const mat=matInput.value.trim();
+  const mat=(matInput.value||'').trim();
+  if(mat) matInput.setAttribute('data-loaded',mat);
   if(!eng || !mat) return;
   const key=eng.toLowerCase();
   if(prodEngLib[key]){
