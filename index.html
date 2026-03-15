@@ -4802,6 +4802,9 @@ function saveMaterialToEngLib(matInput){
     const thai=(tr.querySelector('.po-thainame')?.value||'').trim();
     if(thai){ prodEngLib[key]={thai, material:mat}; saveProdEngLib(); }
   }
+  // ✅ auto-save PO เมื่อ material เปลี่ยน
+  clearTimeout(window._matDebounce);
+  window._matDebounce = setTimeout(savePO, 800);
 }
 
 // Called from Product Name modal translate button / blur
