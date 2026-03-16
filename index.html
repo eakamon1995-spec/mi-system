@@ -6749,7 +6749,7 @@ function backupAllData(){
   const backup={
     version: SYS_VERSION,
     backupAt: new Date().toISOString(),
-    poStore: poStore,
+    poStore: JSON.parse(localStorage.getItem('mi_poStore')||'[]'),
     bcMI: JSON.parse(localStorage.getItem('bc_mi_lib')||'null'),
     bcKO: JSON.parse(localStorage.getItem('bc_ko_lib')||'null'),
     stock: JSON.parse(localStorage.getItem('mi_stock')||'[]'),
@@ -7436,7 +7436,7 @@ async function qcAIAnalysis(){
   // Gather QC data
   const miTotal=miData.length, kmTotal=kmData.length;
   const stockItems=JSON.parse(localStorage.getItem('mi_stock')||'[]').length;
-  const pos=JSON.parse(localStorage.getItem('mi_poStore')||'[]');
+  const pos=poStore;
   const poTotal=pos.length;
 
   // MI issues
