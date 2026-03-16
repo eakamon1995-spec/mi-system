@@ -4959,7 +4959,7 @@ function saveSupplier(){
   const name=document.getElementById('supName').value.trim();
   if(!name){toast('Please enter supplier name','e');return;}
   const code=document.getElementById('supCode').value.trim()||'SUP-'+String(supplierStore.length+1).padStart(3,'0');
-  supplierStore.push({id:code,name,type:document.getElementById('supType').value,leadTime:parseInt(document.getElementById('supLead').value)||0,contact:document.getElementById('supContact').value});
+  const sup={id:code,name,type:document.getElementById('supType').value,leadTime:parseInt(document.getElementById('supLead').value)||0,contact:document.getElementById('supContact').value};supplierStore.push(sup);
   // ✅ sync to Google Sheet
   apiCall('saveSupplier', sup).then(res => {
     if(res.ok) {
