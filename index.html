@@ -2703,6 +2703,10 @@ async function pollSync() {
       }
     }
 
+    // Suppliers
+    const supRes = await apiCall('getSuppliers');
+    if (supRes.ok && supRes.data) { supplierStore = supRes.data; renderSuppliers(); populateSupSelect(); }
+
     _lastSyncTime = new Date();
     _syncFailed = false;
     _sheetsReady = true;
