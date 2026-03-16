@@ -2860,13 +2860,15 @@ let editingPO = null; // for status edit
 // PERSIST
 // ============================
 function persist(){
-  localStorage.setItem('mi_poStore',JSON.stringify(poStore));
-  localStorage.setItem('mi_supStore',JSON.stringify(supplierStore));
-  localStorage.setItem('mi_barcodes',JSON.stringify(barcodeStore));
-  // picLib saved separately (can be large) — saved on upload, not on every persist
-
-  localStorage.setItem('mi_impHist',JSON.stringify(importHistory));
-  localStorage.setItem('mi_poCtr',poCounter);
+  // ✅ ไม่เก็บ poStore และ barcodeStore ลง localStorage (ใหญ่เกิน 5MB quota)
+  // ข้อมูลพวกนี้โหลดจาก Google Sheet ทุกครั้ง
+  try { localStorage.setItem('mi_supStore',JSON.stringify(supplierStore)); } catch(e){}
+  try { localStorage.setItem('mi_impHist',JSON.stringify(importHistory)); } catch(e){}
+  try { localStorage.setItem('mi_poCtr',poCounter); } catch(e){}
+  // prodEngLib เก็บแค่เมื่อมีค่า และใช้ try-catch
+  if(typeof prodEngLib!=='undefined' && Object.keys(prodEngLib).length>0){
+    try { localStorage.setItem('mi_prodEngLib',JSON.stringify(prodEngLib)); } catch(e){}
+  }
 }
 
 // ============================
