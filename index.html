@@ -6749,7 +6749,7 @@ function backupAllData(){
   const backup={
     version: SYS_VERSION,
     backupAt: new Date().toISOString(),
-    poStore: JSON.parse(localStorage.getItem('mi_poStore')||'[]'),
+    poStore: poStore,
     bcMI: JSON.parse(localStorage.getItem('bc_mi_lib')||'null'),
     bcKO: JSON.parse(localStorage.getItem('bc_ko_lib')||'null'),
     stock: JSON.parse(localStorage.getItem('mi_stock')||'[]'),
@@ -6789,7 +6789,7 @@ function restoreData(){
         if(!confirm(`Restore จาก backup v${data.version} (${data.backupAt.slice(0,10)})?
 
 ข้อมูลปัจจุบันจะถูกแทนที่`)) return;
-        if(data.poStore) {localStorage.setItem('mi_poStore',JSON.stringify(data.poStore)); poStore=data.poStore;}
+        if(data.poStore) { poStore=data.poStore; }
         if(data.bcMI) localStorage.setItem('bc_mi_lib',JSON.stringify(data.bcMI));
         if(data.bcKO) localStorage.setItem('bc_ko_lib',JSON.stringify(data.bcKO));
         if(data.stock) localStorage.setItem('mi_stock',JSON.stringify(data.stock));
@@ -7436,7 +7436,7 @@ async function qcAIAnalysis(){
   // Gather QC data
   const miTotal=miData.length, kmTotal=kmData.length;
   const stockItems=JSON.parse(localStorage.getItem('mi_stock')||'[]').length;
-  const pos=poStore;
+  const pos=JSON.parse(localStorage.getItem('mi_poStore')||'[]');
   const poTotal=pos.length;
 
   // MI issues
