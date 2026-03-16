@@ -4282,7 +4282,7 @@ function exportSinglePO(id){
     wsData.push([i+1,it.agent,it.code,it.bcPcs,it.bcCtn,it.fac,it.thaiName,it.engName,it.material,it.ex,{f:`J${r}*(1+${comVal})`},it.pcsCtn,it.ttCtn,{f:`L${r}*M${r}`},it.ctnSize,{f:`N${r}*K${r}`},{f:`P${r}/M${r}`},it.delivDate,it.pack,it.remFac,it.remDesign,it.designRef,it.pic?'[See image in system]':'']);
   });
   const totRow=dataStartRow+(po.items?.length||0);
-  wsData.push([null,null,null,null,null,null,null,null,null,null,null,{f:`SUM(L${dataStartRow}:L${totRow-1})`},{f:`SUM(M${dataStartRow}:M${totRow-1})`},'Total',{f:`SUM(O${dataStartRow}:O${totRow-1})`}]);
+  wsData.push([null,null,null,null,null,null,null,null,null,null,null,null,{f:`SUM(M${dataStartRow}:M${totRow-1})`},{f:`SUM(N${dataStartRow}:N${totRow-1})`},'Total',{f:`SUM(P${dataStartRow}:P${totRow-1})`},null,null,null,null,null,null,null]);
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols']=[{wch:8},{wch:14},{wch:28},{wch:39},{wch:39},{wch:27},{wch:40},{wch:40},{wch:15},{wch:15},{wch:11},{wch:9},{wch:15},{wch:10},{wch:18},{wch:18},{wch:19},{wch:12},{wch:37},{wch:37},{wch:25},{wch:14}];
