@@ -2842,7 +2842,10 @@ const RAW_KM_DATA = [["2025-05-24","HTKM2505-001","KM-ST107-5","","[480] Stainle
 let kmData = [...RAW_KM_DATA];
 let poStore = [];
 try{localStorage.removeItem('mi_supStore');localStorage.removeItem('mi_poStore');localStorage.removeItem('mi_barcodes');}catch(e){}
-let supplierStore = []
+let supplierStore = []let supplierStore = JSON.parse(localStorage.getItem('mi_supStore')||JSON.stringify([
+  {id:'SUP-FT',name:'FT Factory',type:'Manufacturer',leadTime:30,contact:'ft@factory.com'},
+  {id:'SUP-YW',name:'YW Supplier',type:'Manufacturer',leadTime:25,contact:'yw@factory.com'},
+]));
 let barcodeStore = JSON.parse(localStorage.getItem('mi_barcodes')||'{}');
 let picLib = JSON.parse(localStorage.getItem('mi_picLib')||'{}'); // code → base64
 let importHistory = JSON.parse(localStorage.getItem('mi_impHist')||'[]');
@@ -2859,7 +2862,7 @@ let editingPO = null; // for status edit
 // ============================
 function persist(){
   // ✅ ไม่เก็บ poStore และ barcodeStore (ใหญ่เกิน localStorage quota 5MB)
-  // ✅ supStore not persisted - loaded from Sheet
+  // supStore loaded from Sheet only
   try{localStorage.setItem('mi_impHist',JSON.stringify(importHistory));}catch(e){}
   try{localStorage.setItem('mi_poCtr',poCounter);}catch(e){}
 }
