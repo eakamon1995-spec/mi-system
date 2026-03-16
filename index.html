@@ -4093,10 +4093,10 @@ function exportPOExcel(){
   wsData.push([
     null,null,null,null,null,null,null,null,
     null,null,null,
-    {f:`SUM(L${dataStartRow}:L${totRow-1})`},
     {f:`SUM(M${dataStartRow}:M${totRow-1})`},
+    {f:`SUM(N${dataStartRow}:N${totRow-1})`},
     'Total',
-    {f:`SUM(O${dataStartRow}:O${totRow-1})`},
+    {f:`SUM(P${dataStartRow}:P${totRow-1})`},
     null,null,null,null,null,null,null
   ]);
   const ws=XLSX.utils.aoa_to_sheet(wsData,{cellDates:true});
