@@ -7436,7 +7436,7 @@ async function qcAIAnalysis(){
   // Gather QC data
   const miTotal=miData.length, kmTotal=kmData.length;
   const stockItems=JSON.parse(localStorage.getItem('mi_stock')||'[]').length;
-  const pos=JSON.parse(localStorage.getItem('mi_poStore')||'[]');
+  const pos=poStore;
   const poTotal=pos.length;
 
   // MI issues
