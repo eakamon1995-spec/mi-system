@@ -2543,6 +2543,10 @@ async function syncAllFromSheets() {
       if (currentPage === 'po-status') renderStatusBoard();
     }
 
+    // Suppliers
+    const supRes = await apiCall('getSuppliers');
+    if (supRes.ok && supRes.data) { supplierStore = supRes.data; persist(); }
+
     // Barcodes
     const bcRes = await apiCall('getBarcodes');
     if (bcRes.ok && bcRes.data) {
@@ -4959,7 +4963,19 @@ function saveSupplier(){
   if(!name){toast('Please enter supplier name','e');return;}
   const code=document.getElementById('supCode').value.trim()||'SUP-'+String(supplierStore.length+1).padStart(3,'0');
   supplierStore.push({id:code,name,type:document.getElementById('supType').value,leadTime:parseInt(document.getElementById('supLead').value)||0,contact:document.getElementById('supContact').value});
-  persist();populateSupSelect();renderSuppliers();closeModal('supModal');
+  // ✅ sync to Google Sheet
+  apiCall('saveSupplier', sup).then(res => {
+    if(res.ok) {
+      // reload suppliers from server
+      apiCall('getSuppliers').then(r2 => {
+        if(r2.ok && r2.data) supplierStore = r2.data;
+        persist(); populateSupSelect(); renderSuppliers();
+      });
+    } else {
+      persist(); populateSupSelect(); renderSuppliers();
+    }
+  }).catch(() => { persist(); populateSupSelect(); renderSuppliers(); });
+  closeModal('supModal');
   document.getElementById('supName').value='';document.getElementById('supCode').value='';document.getElementById('supContact').value='';
   toast('✓ Added supplier "'+name+'"','s');
 }
