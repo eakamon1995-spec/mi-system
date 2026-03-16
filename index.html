@@ -2801,7 +2801,7 @@ async function erpSaveBarcode(item) {
   if (!r.ok) toast('⚠️ Barcode sync error: ' + r.error, 'e');
 }
 
-async function await erpDeleteBarcode(brand, code) {
+async function erpDeleteBarcode(brand, code) {
   if (!erpToken || !erpApiUrl) return;
   const r = await apiCall('deleteBarcode', { brand, code });
   if (!r.ok) toast('⚠️ Barcode delete sync error: ' + r.error, 'e');
@@ -5556,7 +5556,7 @@ function editBcItem(brand,code){
   else bcClearPic();
   openModal('bcAddModal');
 }
-async function bcSaveItem(){
+function bcSaveItem(){
   const brand=document.getElementById('bc-fm-brand').value;
   const code=document.getElementById('bc-fm-code').value.trim();
   const name=document.getElementById('bc-fm-name').value.trim();
@@ -5589,17 +5589,17 @@ async function bcSaveItem(){
   else{if(lib.find(r=>r.code===code)){toast('Code already exists!','e');return;}lib.push(item);}
   if(bcCurrentPic) picStore[bcPicKey(code,brand)]=bcCurrentPic;
   persistBC();
-  erpSaveBarcode({brand, code, name, pcs, ctn, sup: r.sup||'', fac: r.fac||'', change: r.change||'', pic: r.pic||'', no: r.no||''});
+  await erpSaveBarcode({brand, code, name, pcs, ctn, sup: r.sup||'', fac: r.fac||'', change: r.change||'', pic: r.pic||'', no: r.no||''});
   closeModal('bcAddModal');
   if(brand==='MI') renderBcMI(); else renderBcKO();
   toast(`✓ ${bcEditing?'Updated':'Added'} ${code}`,'s');
 }
-async function deleteBcItem(brand,code){
+function deleteBcItem(brand,code){
   if(!confirm('Delete '+brand+': '+code+'?')) return;
   if(brand==='MI') miLib=miLib.filter(r=>r.code!==code);
   else koLib=koLib.filter(r=>r.code!==code);
   delete picStore[bcPicKey(code,brand)];
-  persistBC();await erpDeleteBarcode(brand, code);if(brand==='MI') renderBcMI(); else renderBcKO();
+  persistBC();erpDeleteBarcode(brand, code);if(brand==='MI') renderBcMI(); else renderBcKO();
   toast('Deleted '+code,'i');
 }
 function bcHandlePic(file){
