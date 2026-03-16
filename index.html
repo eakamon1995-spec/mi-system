@@ -2845,7 +2845,7 @@ let supplierStore = JSON.parse(localStorage.getItem('mi_supStore')||JSON.stringi
   {id:'SUP-FT',name:'FT Factory',type:'Manufacturer',leadTime:30,contact:'ft@factory.com'},
   {id:'SUP-YW',name:'YW Supplier',type:'Manufacturer',leadTime:25,contact:'yw@factory.com'},
 ]));
-let barcodeStore = {};
+let barcodeStore = JSON.parse(localStorage.getItem('mi_barcodes')||'{}');
 let picLib = JSON.parse(localStorage.getItem('mi_picLib')||'{}'); // code → base64
 let importHistory = JSON.parse(localStorage.getItem('mi_impHist')||'[]');
 let poCounter = parseInt(localStorage.getItem('mi_poCtr')||'1');
@@ -6749,7 +6749,7 @@ function backupAllData(){
   const backup={
     version: SYS_VERSION,
     backupAt: new Date().toISOString(),
-    poStore: JSON.parse(localStorage.getItem('mi_poStore')||'[]'),
+    poStore: poStore,
     bcMI: JSON.parse(localStorage.getItem('bc_mi_lib')||'null'),
     bcKO: JSON.parse(localStorage.getItem('bc_ko_lib')||'null'),
     stock: JSON.parse(localStorage.getItem('mi_stock')||'[]'),
@@ -6789,7 +6789,7 @@ function restoreData(){
         if(!confirm(`Restore จาก backup v${data.version} (${data.backupAt.slice(0,10)})?
 
 ข้อมูลปัจจุบันจะถูกแทนที่`)) return;
-        if(data.poStore) { poStore=data.poStore; } // ✅ no localStorage for poStore
+        if(data.poStore) {localStorage.setItem('mi_poStore',JSON.stringify(data.poStore)); poStore=data.poStore;}
         if(data.bcMI) localStorage.setItem('bc_mi_lib',JSON.stringify(data.bcMI));
         if(data.bcKO) localStorage.setItem('bc_ko_lib',JSON.stringify(data.bcKO));
         if(data.stock) localStorage.setItem('mi_stock',JSON.stringify(data.stock));
