@@ -5556,7 +5556,7 @@ function editBcItem(brand,code){
   else bcClearPic();
   openModal('bcAddModal');
 }
-function bcSaveItem(){
+async function bcSaveItem(){
   const brand=document.getElementById('bc-fm-brand').value;
   const code=document.getElementById('bc-fm-code').value.trim();
   const name=document.getElementById('bc-fm-name').value.trim();
@@ -5594,7 +5594,7 @@ function bcSaveItem(){
   if(brand==='MI') renderBcMI(); else renderBcKO();
   toast(`✓ ${bcEditing?'Updated':'Added'} ${code}`,'s');
 }
-function deleteBcItem(brand,code){
+async function deleteBcItem(brand,code){
   if(!confirm('Delete '+brand+': '+code+'?')) return;
   if(brand==='MI') miLib=miLib.filter(r=>r.code!==code);
   else koLib=koLib.filter(r=>r.code!==code);
