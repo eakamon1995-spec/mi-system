@@ -5589,7 +5589,7 @@ async function bcSaveItem(){
   else{if(lib.find(r=>r.code===code)){toast('Code already exists!','e');return;}lib.push(item);}
   if(bcCurrentPic) picStore[bcPicKey(code,brand)]=bcCurrentPic;
   persistBC();
-  await erpSaveBarcode({brand, code, name, pcs, ctn, sup: r.sup||'', fac: r.fac||'', change: r.change||'', pic: r.pic||'', no: r.no||''});
+  await erpSaveBarcode({brand, code, name, pcs, ctn, sup: item.sup||'', fac: item.fac||'', change: item.change||'', pic: item.pic||'', no: item.no||0});
   closeModal('bcAddModal');
   if(brand==='MI') renderBcMI(); else renderBcKO();
   toast(`✓ ${bcEditing?'Updated':'Added'} ${code}`,'s');
