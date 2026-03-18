@@ -5110,7 +5110,7 @@ function renderBcMI(){
   const allMiCats=[...new Set(miLib.map(r=>getCategoryFromCode(r.code)).filter(c=>c&&c!=='—'))].sort();
   const miCatSel=document.getElementById('mi-cat-filter');
   if(miCatSel){const cv=miCatSel.value;miCatSel.innerHTML='<option value="">ทุกหมวด</option>'+allMiCats.map(c=>`<option value="${c}">${c}</option>`).join('');miCatSel.value=cv;}
-  const list=miLib.filter(r=>(!supF||(r.sup||'')===supF)&&(!catFMI||getCategoryFromCode(r.code)===catFMI)&&(!search||[(r.code||''),(r.name||''),(r.pcs||''),(r.ctn||'')].some(v=>v.toLowerCase().includes(search))));
+  const list=miLib.filter(r=>(!supF||(r.sup||'')===supF)&&(!catFMI||getCategoryFromCode(r.code)===catFMI)&&(!search||[(r.code||''),(r.name||''),String(r.pcs||''),String(r.ctn||'')].some(v=>String(v).toLowerCase().includes(search))));
   const elT=document.getElementById('mi-total-count'),elB=document.getElementById('mi-has-bc'),elS=document.getElementById('mi-sups-count');
   if(elT) elT.textContent=miLib.length.toLocaleString();
   if(elB) elB.textContent=miLib.filter(r=>r.pcs).length.toLocaleString();
@@ -5147,7 +5147,7 @@ function renderBcKO(){
   const allKoCats=[...new Set(koLib.map(r=>getCategoryFromCode(r.code)).filter(c=>c&&c!=='—'))].sort();
   const koCatSel=document.getElementById('ko-cat-filter');
   if(koCatSel){const cv=koCatSel.value;koCatSel.innerHTML='<option value="">ทุกหมวด</option>'+allKoCats.map(c=>`<option value="${c}">${c}</option>`).join('');koCatSel.value=cv;}
-  const list=koLib.filter(r=>(!supF||(r.sup||'')===supF)&&(!catFKO||getCategoryFromCode(r.code)===catFKO)&&(!search||[(r.code||''),(r.name||''),(r.pcs||''),(r.ctn||'')].some(v=>v.toLowerCase().includes(search))));
+  const list=koLib.filter(r=>(!supF||(r.sup||'')===supF)&&(!catFKO||getCategoryFromCode(r.code)===catFKO)&&(!search||[(r.code||''),(r.name||''),String(r.pcs||''),String(r.ctn||'')].some(v=>String(v).toLowerCase().includes(search))));
   const elT=document.getElementById('ko-total-count'),elB=document.getElementById('ko-has-bc'),elS=document.getElementById('ko-sups-count');
   if(elT) elT.textContent=koLib.length.toLocaleString();
   if(elB) elB.textContent=koLib.filter(r=>r.pcs).length.toLocaleString();
