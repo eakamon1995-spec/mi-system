@@ -4053,6 +4053,8 @@ async function poHandlePic(idx, file, existingFileId) {
             <div class="po-pic-edit-overlay" onclick="event.stopPropagation();poPickPic(${idx},'replace','${res.fileId}')" title="เปลี่ยนรูป">✎</div>`;
         }
         toast('✓ Photo uploaded', 's');
+        // Auto-save PO to persist pic URL to Sheet
+        if(typeof _pushPOAndNotify==='function') _pushPOAndNotify();
       } else {
         // Fallback: store locally if Drive fails
         if (cell) cell.innerHTML = `<img src="${base64}">`;
