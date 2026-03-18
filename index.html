@@ -4388,15 +4388,14 @@ async function imgUrlToBase64(url){
 }
 async function printSinglePO(id){
   const po=poStore.find(p=>p.id===id); if(!po) return;
-  // Pre-fetch all item images as base64 (must be before popup opens)
-  const b64Map={};
-  await Promise.all((po.items||[]).map(async(it2,ix)=>{
-    if(it2.pic) b64Map[ix]=await imgUrlToBase64(it2.pic);
-  }));
   const sc=po.supCustom||{};
   const comVal=(po.com!=null?po.com:2)/100;
   const dateFormatted=po.date?new Date(po.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'-';
 
+  const b64Map={};
+  await Promise.all((po.items||[]).map(async(it2,ix)=>{
+    if(it2.pic) b64Map[ix]=await imgUrlToBase64(it2.pic);
+  }));
   const rowsHtml=(po.items||[]).map((it,i)=>{
     const ex=it.ex||0;
     const p2=parseFloat((ex*(1+comVal)).toFixed(3));
