@@ -628,6 +628,9 @@ input[readonly]{background:var(--surface2);cursor:default;}
 /* PO row picture cell */
 .po-pic-cell{width:56px;height:44px;border-radius:5px;overflow:hidden;background:var(--surface2);display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);cursor:pointer;transition:border-color .15s;font-size:16px;flex-shrink:0;}
 .po-pic-cell:hover{border-color:var(--accent);}
+.po-pic-edit-overlay{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:3px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;opacity:0;transition:opacity .15s;}
+.po-pic-cell:hover .po-pic-edit-overlay{opacity:1;}
+.po-pic-cell{position:relative;}
 .po-pic-cell img{width:100%;height:100%;object-fit:contain;}
 
 /* Custom supplier info panel */
@@ -3975,36 +3978,65 @@ function toggleSupCustom(){
 // ============================
 // PO ROW PICTURE
 // ============================
-function poPickPic(idx){
-  const f=document.getElementById('picFile_'+idx);if(f)f.click();
+function poPickPic(idx, mode, fileId) {
+  const input = document.getElementById('picFile_' + idx);
+  if (input) {
+    input.onchange = function(e) { poHandlePic(idx, e.target.files[0], fileId || null); };
+    input.click();
+  }
 }
 
-function poHandlePic(idx,file){
-  if(!file) return;
-  if(file.size>3*1024*1024){toast('Image too large (max 3MB)','e');return;}
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const data=e.target.result;
-    const cell=document.getElementById('pic_'+idx);
-    if(cell){
-      cell.innerHTML=`<img src="${data}" onclick="event.stopPropagation();viewPoPic('${data}')" style="cursor:zoom-in">`;
-      cell.setAttribute('data-pic',data);
-      cell.title='Click image to view · Double-click cell to change';
-      cell.ondblclick=()=>document.getElementById('picFile_'+idx)?.click();
-      cell.onclick=e=>{if(e.target.tagName!=='IMG') document.getElementById('picFile_'+idx)?.click();};
-      // Save pic to picLib keyed by product code
-      const tr=cell.closest('tr');
-      const code=(tr?.querySelector('.code-input')?.value||'').trim().toUpperCase();
-      if(code){
-        picLib[code]=data;
-        try{ localStorage.setItem('mi_picLib',JSON.stringify(picLib)); }catch(e){
-          // localStorage full — keep only last 100 pics
-          const keys=Object.keys(picLib);
-          if(keys.length>100){ delete picLib[keys[0]]; }
-          try{ localStorage.setItem('mi_picLib',JSON.stringify(picLib)); }catch(e2){}
-        }
-        toast('📷 บันทึกรูป "'+code+'" ไว้แล้ว — ครั้งหน้าขึ้นอัตโนมัติ','s');
+async function poHandlePic(idx, file, existingFileId) {
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) { toast('Image too large (max 8MB)', 'e'); return; }
+
+  const cell = document.getElementById('pic_' + idx);
+  if (cell) {
+    cell.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;opacity:.6">Uploading...</div>';
+  }
+
+  // Convert to base64
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const base64 = e.target.result;
+    const filename = 'PO_' + (currentPO || 'new') + '_item' + idx + '_' + Date.now() + '.' + file.name.split('.').pop();
+
+    try {
+      // Delete old photo if replacing
+      if (existingFileId) {
+        apiCall('deletePhoto', { fileId: existingFileId }).catch(() => {});
       }
+
+      // Upload to Google Drive
+      const res = await apiCall('savePhoto', {
+        base64,
+        filename,
+        mimeType: file.type || 'image/jpeg'
+      });
+
+      if (res.ok) {
+        // Store Drive URL + fileId in item
+        const item = poStore.find(p => p.id === currentPO)?.items?.[idx];
+        if (item) {
+          item.pic = res.url;
+          item.picFileId = res.fileId;
+        }
+        // Update cell display with edit button
+        if (cell) {
+          cell.innerHTML = `<img src="${res.url}" style="width:100%;height:100%;object-fit:contain">
+            <div class="po-pic-edit-overlay" onclick="event.stopPropagation();poPickPic(${idx},'replace','${res.fileId}')" title="เปลี่ยนรูป">✎</div>`;
+        }
+        toast('✓ Photo uploaded', 's');
+      } else {
+        // Fallback: store locally if Drive fails
+        if (cell) cell.innerHTML = `<img src="${base64}">`;
+        const item = poStore.find(p => p.id === currentPO)?.items?.[idx];
+        if (item) item.pic = base64;
+        toast('⚠ Drive upload failed, saved locally', 'w');
+      }
+    } catch (err) {
+      if (cell) cell.innerHTML = `<img src="${base64}">`;
+      toast('⚠ Upload error: ' + err.message, 'e');
     }
   };
   reader.readAsDataURL(file);
