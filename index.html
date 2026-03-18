@@ -4238,8 +4238,8 @@ function editPO(id){
   goPage('create-po',document.querySelector('.ni[onclick*="create-po"]'));
   setTimeout(()=>{
     document.getElementById('poNumber').value=po.id;
-    document.getElementById('poDate').value=po.date||'';
-    document.getElementById('poDelivery').value=po.deliveryDate||'';
+    document.getElementById('poDate').value=(po.date||'').toString().substring(0,10);
+    document.getElementById('poDelivery').value=(po.deliveryDate||'').toString().substring(0,10);
     document.getElementById('poStatus').value=po.status||'draft';
     document.getElementById('poRemark').value=po.remark||'';
     document.getElementById('poRate').value=po.rate||4.9;
