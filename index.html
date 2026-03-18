@@ -5057,7 +5057,7 @@ let prodNameLib = JSON.parse(localStorage.getItem('prod_name_lib')||'{}'); // {c
 let prodEngLib = JSON.parse(localStorage.getItem('prod_eng_lib')||'{}'); // {engName.lower:{thai,material}}
 let bcSuppliers = JSON.parse(localStorage.getItem('bc_suppliers')||'null');
 if(!bcSuppliers){ bcSuppliers=BC_DEFAULT_SUPS.filter(s=>s&&s.trim()).map(s=>({code:s.trim(),name:s.trim(),type:'Manufacturer',country:'China',brand:'both',lead:30,contact:'',notes:''})); }
-let picStore = {}; // ✅ ไม่โหลดจาก localStorage (ใหญ่เกิน quota) — รูปโหลดจาก Drive URL
+let picStore = JSON.parse(localStorage.getItem('bc_pics')||'{}');
 let miPage2=1,koPage2=1;
 let bcEditing=null,bcEditingBrand='MI',bcEditingSup=null,bcCurrentPic=null,bcDetailRec=null;
 const BCPER=50;
@@ -5074,13 +5074,10 @@ function fmtBc(val,brand,type){
 }
 
 function persistBC(){
-  // bc_mi_lib not persisted in localStorage (too large)
-  );
-  // bc_ko_lib not persisted in localStorage (too large)
-  );
+  localStorage.setItem('bc_mi_lib',JSON.stringify(miLib));
+  localStorage.setItem('bc_ko_lib',JSON.stringify(koLib));
   localStorage.setItem('bc_suppliers',JSON.stringify(bcSuppliers));
-  // bc_pics not persisted in localStorage (too large)
-  );
+  localStorage.setItem('bc_pics',JSON.stringify(picStore));
 }
 function bcPicKey(c,b){return b+'::'+c;}
 function getBcPic(c,b){return picStore[bcPicKey(c,b)]||null;}
