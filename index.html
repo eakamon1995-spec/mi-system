@@ -841,7 +841,7 @@ input[readonly]{background:var(--surface2);cursor:default;}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <div class="topbar-title" id="topbarTitle">Dashboard</div>
-      <div class="topbar-meta" id="topbarMeta">MI Brand · ¥58.45M</div>
+      <div class="topbar-meta" id="topbarMeta" onclick="toggleBrand()" style="cursor:pointer;user-select:none" title="คลิกสลับ MI / KM Brand"><span id="topBarBrand">MI Brand</span> · ¥58.45M</div>
     </div>
     <div class="topbar-right">
       <div class="theme-toggle" onclick="toggleTheme()">
@@ -2827,17 +2827,7 @@ function requireERPAdmin(action) {
 function isAdmin() { return erpCurrentUser && erpCurrentUser.role === 'admin'; }
 
 // ── Auto-restore session ──────────────────────────────────────
-
-function toggleBrand() {
-  erpCurrentBrand = erpCurrentBrand === 'MI' ? 'KM' : 'MI';
-  localStorage.setItem('mi_brand', erpCurrentBrand);
-  const el = document.getElementById('topBarBrand');
-  if(el) el.textContent = erpCurrentBrand + ' Brand';
-  toast('สลับเป็น ' + erpCurrentBrand + ' Brand', 's');
-  syncAllFromSheets();
-}
 function erpInit() {
-  erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
   // Load saved brand preference
   erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
   // Restore API URL
@@ -3894,7 +3884,7 @@ async function _pushPOAndNotify(po) {
     po.createdBy = po.createdBy || (erpCurrentUser?.id||'local');
     po.createdByName = erpCurrentUser?.name||'';
     dbg(`  กำลัง apiCall('savePO') PO items: ${po.items?.length||0}`);
-    const r = await apiCall('savePO', {...po, brand: erpCurrentBrand});
+    const r = await apiCall('savePO', po);
     dbg(`  response: ok=${r.ok} error=${r.error||'-'} token=${r.token?.slice(0,8)||'-'}`, r.ok ? 'ok' : 'err');
 
     if (r.ok) {
