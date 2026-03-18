@@ -2297,6 +2297,7 @@ let erpToken = localStorage.getItem('mi_erpToken') || null;
 let erpCurrentUser = JSON.parse(localStorage.getItem('mi_erpUser') || 'null');
 let erpApiUrl = localStorage.getItem('mi_erpUrl') || 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
 let erpSyncing = false;
+let erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
 
 // ── API call helper ──────────────────────────────────────────
 async function apiCall(action, payload = {}) {
