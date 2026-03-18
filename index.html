@@ -2,6 +2,9 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MI Procurement System — V.R.TOYS</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -2517,9 +2520,12 @@ function afterLogin() {
     pill.style.color = _r.color;
   }
 
-  // Start polling
+  // Load Suppliers immediately after login (don't wait for pollSync)
   if (erpToken && erpApiUrl) {
     setSyncStatus('syncing');
+    apiCall('getSuppliers').then(r => {
+      if (r.ok && r.data) { supplierStore = r.data; renderSuppliers(); populateSupSelect(); }
+    });
     startPolling(_syncIntervalSec);
   } else {
     setSyncStatus('offline');
@@ -4360,6 +4366,9 @@ function printSinglePO(id){
   const w=window.open('','_blank','width=1400,height=900');
   w.document.write(`<!DOCTYPE html><html><head>
   <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
   <title>PO ${po.id}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
