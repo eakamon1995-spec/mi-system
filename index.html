@@ -2827,17 +2827,15 @@ function requireERPAdmin(action) {
 function isAdmin() { return erpCurrentUser && erpCurrentUser.role === 'admin'; }
 
 // ── Auto-restore session ──────────────────────────────────────
+
 function toggleBrand() {
-  erpCurrentBrand = (erpCurrentBrand === 'MI') ? 'KM' : 'MI';
+  erpCurrentBrand = erpCurrentBrand === 'MI' ? 'KM' : 'MI';
   localStorage.setItem('mi_brand', erpCurrentBrand);
-  // อัพเดท header
   const el = document.getElementById('topBarBrand');
-  if (el) el.textContent = erpCurrentBrand + ' Brand';
-  // reload data
-  toast('สลับเป็น ' + erpCurrentBrand + ' Brand — กำลัง sync...', 's');
+  if(el) el.textContent = erpCurrentBrand + ' Brand';
+  toast('สลับเป็น ' + erpCurrentBrand + ' Brand', 's');
   syncAllFromSheets();
 }
-
 function erpInit() {
   erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
   // Load saved brand preference
