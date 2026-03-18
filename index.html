@@ -4388,6 +4388,11 @@ async function imgUrlToBase64(url){
 }
 async function printSinglePO(id){
   const po=poStore.find(p=>p.id===id); if(!po) return;
+  // Pre-fetch all item images as base64 (must be before popup opens)
+  const b64Map={};
+  await Promise.all((po.items||[]).map(async(it2,ix)=>{
+    if(it2.pic) b64Map[ix]=await imgUrlToBase64(it2.pic);
+  }));
   const sc=po.supCustom||{};
   const comVal=(po.com!=null?po.com:2)/100;
   const dateFormatted=po.date?new Date(po.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'-';
@@ -4430,10 +4435,6 @@ async function printSinglePO(id){
   const totalPcs=(po.items||[]).reduce((s,it)=>s+((it.pcsCtn||0)*(it.ttCtn||0)),0);
   const totalAmt=po.total||0;
 
-  const b64Map={};
-  await Promise.all((po.items||[]).map(async(it2,ix)=>{
-    if(it2.pic) b64Map[ix]=await imgUrlToBase64(it2.pic);
-  }));
   const w=window.open('','_blank','width=1400,height=900');
   w.document.write(`<!DOCTYPE html><html><head>
   <meta charset="UTF-8">
