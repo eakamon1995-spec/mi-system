@@ -5057,7 +5057,7 @@ let prodNameLib = JSON.parse(localStorage.getItem('prod_name_lib')||'{}'); // {c
 let prodEngLib = JSON.parse(localStorage.getItem('prod_eng_lib')||'{}'); // {engName.lower:{thai,material}}
 let bcSuppliers = JSON.parse(localStorage.getItem('bc_suppliers')||'null');
 if(!bcSuppliers){ bcSuppliers=BC_DEFAULT_SUPS.filter(s=>s&&s.trim()).map(s=>({code:s.trim(),name:s.trim(),type:'Manufacturer',country:'China',brand:'both',lead:30,contact:'',notes:''})); }
-let picStore = {}; // ✅ ไม่โหลดจาก localStorage — รูปเก็บใน Drive
+let picStore = JSON.parse(localStorage.getItem('bc_pics')||'{}');
 let miPage2=1,koPage2=1;
 let bcEditing=null,bcEditingBrand='MI',bcEditingSup=null,bcCurrentPic=null,bcDetailRec=null;
 const BCPER=50;
@@ -5074,10 +5074,9 @@ function fmtBc(val,brand,type){
 }
 
 function persistBC(){
-  localStorage.setItem('bc_mi_lib',JSON.stringify(miLib));
-  localStorage.setItem('bc_ko_lib',JSON.stringify(koLib));
-  localStorage.setItem('bc_suppliers',JSON.stringify(bcSuppliers));
-  localStorage.setItem('bc_pics',JSON.stringify(picStore));
+  // bc_mi_lib, bc_ko_lib: โหลดจาก Sheet ทุก sync — ไม่ต้อง persist ใน localStorage
+  // bc_pics: base64 ใหญ่มาก — ไม่ persist เพื่อป้องกัน QuotaExceededError
+  try { localStorage.setItem('bc_suppliers',JSON.stringify(bcSuppliers)); } catch(e){}
 }
 function bcPicKey(c,b){return b+'::'+c;}
 function getBcPic(c,b){return picStore[bcPicKey(c,b)]||null;}
@@ -6846,8 +6845,8 @@ function restoreData(){
 
 ข้อมูลปัจจุบันจะถูกแทนที่`)) return;
         if(data.poStore) { poStore=data.poStore; }
-        if(data.bcMI) // bc_mi_lib not persisted (use in-memory miLib instead)
-        if(data.bcKO) // bc_ko_lib not persisted (use in-memory koLib instead)
+        if(data.bcMI) localStorage.setItem('bc_mi_lib',JSON.stringify(data.bcMI));
+        if(data.bcKO) localStorage.setItem('bc_ko_lib',JSON.stringify(data.bcKO));
         if(data.stock) localStorage.setItem('mi_stock',JSON.stringify(data.stock));
         if(data.qc) localStorage.setItem('mi_qcStore',JSON.stringify(data.qc));
         if(data.users) localStorage.setItem('mi_users',JSON.stringify(data.users));
