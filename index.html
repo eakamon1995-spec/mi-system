@@ -2543,7 +2543,7 @@ async function syncAllFromSheets() {
 
   try {
     // PO
-    const poRes = await apiCall('getPOs');
+    const poRes = await apiCall('getPOs', { brand: erpCurrentBrand });
     if (poRes.ok && poRes.data) {
       poStore = poRes.data;
       persist();
@@ -2656,7 +2656,7 @@ async function pollSync() {
 
   try {
     // Pull POs
-    const poRes = await apiCall('getPOs');
+    const poRes = await apiCall('getPOs', { brand: erpCurrentBrand });
     if (poRes.ok && poRes.data) {
       const sheetsData = poRes.data;
       const sheetsIds = new Set(sheetsData.map(p => p.id));
@@ -2828,6 +2828,8 @@ function isAdmin() { return erpCurrentUser && erpCurrentUser.role === 'admin'; }
 
 // ── Auto-restore session ──────────────────────────────────────
 function erpInit() {
+  // Load saved brand preference
+  erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
   // Restore API URL
   const savedUrl = localStorage.getItem('mi_erpUrl') || 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
   erpApiUrl = savedUrl;
