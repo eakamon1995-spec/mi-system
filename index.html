@@ -4045,6 +4045,7 @@ async function poHandlePic(idx, file, existingFileId) {
           item.pic = res.url;
           item.picPrintUrl = res.url;
           item.picFileId = res.fileId;
+          if(cell) cell.setAttribute('data-pic', res.url);
         }
         // Update cell display with edit button
         if (cell) {
