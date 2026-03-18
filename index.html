@@ -4400,10 +4400,10 @@ async function printSinglePO(id){
 
   const b64Map={};
   await Promise.all((po.items||[]).map(async(it2,ix)=>{
-    const _domC=document.getElementById('pic_'+ix);
-    const _domP=_domC?_domC.getAttribute('data-pic')||_domC.querySelector('img')?.src||'':'';
-    const _picU=it2.pic||it2.picPrintUrl||_domP||'';
-    if(_picU) b64Map[ix]=await imgUrlToBase64(_picU);
+    const _dc=document.getElementById('pic_'+ix);
+    const _dp=_dc?_dc.getAttribute('data-pic')||_dc.querySelector('img')?.src||'':'';
+    const _pu=it2.pic||it2.picPrintUrl||_dp||'';
+    if(_pu) b64Map[ix]=await imgUrlToBase64(_pu);
   }));
   const rowsHtml=(po.items||[]).map((it,i)=>{
     const ex=it.ex||0;
