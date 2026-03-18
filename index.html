@@ -2836,9 +2836,22 @@ function erpInit() {
   const inp = document.getElementById('erpApiUrlInput');
   if (inp) inp.value = erpApiUrl;
 
-  // Auto-login if token saved
+  // Auto-login if token saved — verify first
   if (erpToken && erpCurrentUser) {
-    afterLogin();
+    // Ping server ก่อน — ถ้า Unauthorized ให้แสดง login screen แทน
+    apiCall('ping').then(r => {
+      if (r.ok) {
+        afterLogin();
+      } else {
+        // Token เก่า — ล้างออกและแสดง login
+        erpApiToken = null;
+        localStorage.removeItem('mi_erpToken');
+        localStorage.removeItem('mi_erpUser');
+        const ls = document.getElementById('loginScreen');
+        if (ls) ls.style.display = 'flex';
+        toast('Session หมดอายุ — กรุณา Login ใหม่', 'w');
+      }
+    });
   } else {
     // Show login screen
     const ls = document.getElementById('loginScreen');
