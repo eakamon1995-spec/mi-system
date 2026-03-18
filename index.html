@@ -2827,7 +2827,19 @@ function requireERPAdmin(action) {
 function isAdmin() { return erpCurrentUser && erpCurrentUser.role === 'admin'; }
 
 // ── Auto-restore session ──────────────────────────────────────
+function toggleBrand() {
+  erpCurrentBrand = (erpCurrentBrand === 'MI') ? 'KM' : 'MI';
+  localStorage.setItem('mi_brand', erpCurrentBrand);
+  // อัพเดท header
+  const el = document.getElementById('topBarBrand');
+  if (el) el.textContent = erpCurrentBrand + ' Brand';
+  // reload data
+  toast('สลับเป็น ' + erpCurrentBrand + ' Brand — กำลัง sync...', 's');
+  syncAllFromSheets();
+}
+
 function erpInit() {
+  erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
   // Load saved brand preference
   erpCurrentBrand = localStorage.getItem('mi_brand') || 'MI';
   // Restore API URL
@@ -3884,7 +3896,7 @@ async function _pushPOAndNotify(po) {
     po.createdBy = po.createdBy || (erpCurrentUser?.id||'local');
     po.createdByName = erpCurrentUser?.name||'';
     dbg(`  กำลัง apiCall('savePO') PO items: ${po.items?.length||0}`);
-    const r = await apiCall('savePO', po);
+    const r = await apiCall('savePO', {...po, brand: erpCurrentBrand});
     dbg(`  response: ok=${r.ok} error=${r.error||'-'} token=${r.token?.slice(0,8)||'-'}`, r.ok ? 'ok' : 'err');
 
     if (r.ok) {
