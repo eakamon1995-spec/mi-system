@@ -4057,7 +4057,7 @@ async function poHandlePic(idx, file, existingFileId) {
         // Fallback: store locally if Drive fails
         if (cell) cell.innerHTML = `<img src="${base64}">`;
         const item = poStore.find(p => p.id === currentPO)?.items?.[idx];
-        if (item) item.pic = base64;
+        if (item) { item.pic = base64; if(cell) cell.setAttribute('data-pic', base64); }
         toast('⚠ Drive upload failed, saved locally', 'w');
       }
     } catch (err) {
@@ -4379,6 +4379,7 @@ function exportSinglePO(id){
 
 async function imgUrlToBase64(url){
   if(!url)return '';
+  if(url.startsWith('data:'))return url;
   try{
     const u=url.replace(/thumbnail[?]id=/,'uc?export=view&id=').replace(/[&]sz=w[0-9]+/,'');
     const r=await fetch(u,{credentials:'include'});
@@ -4396,6 +4397,7 @@ async function printSinglePO(id){
   const b64Map={};
   await Promise.all((po.items||[]).map(async(it2,ix)=>{
     if(it2.pic) b64Map[ix]=await imgUrlToBase64(it2.pic);
+    else if(it2.picPrintUrl) b64Map[ix]=await imgUrlToBase64(it2.picPrintUrl);
   }));
   const rowsHtml=(po.items||[]).map((it,i)=>{
     const ex=it.ex||0;
@@ -4403,7 +4405,8 @@ async function printSinglePO(id){
     const ttPcs=(it.pcsCtn||0)*(it.ttCtn||0);
     const ctnPrice=parseFloat((p2*(it.pcsCtn||0)).toFixed(4));
     const amt=parseFloat(((it.ttCtn||0)*ctnPrice).toFixed(4));
-    const picHtml=b64Map[i]?`<img src="${b64Map[i]}" style="max-width:80px;max-height:60px;border-radius:4px;display:block;margin:auto">`:'';
+    const _ps=b64Map[i]||(it.pic&&it.pic.startsWith('data:')?it.pic:'');
+    const picHtml=_ps?'<img src="'+_ps+'" style="max-width:80px;max-height:60px;border-radius:4px;display:block;margin:auto">':'';
     return `<tr>
       <td style="text-align:center">${i+1}</td>
       <td>${it.agent||''}</td>
