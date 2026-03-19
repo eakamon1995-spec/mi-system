@@ -4044,7 +4044,7 @@ async function poHandlePic(idx, file, existingFileId) {
 
       if (res.ok) {
         // Store Drive URL + fileId in item
-        const item = poStore.find(p => p.id === currentPO)?.items?.[idx];
+        const item = poStore.find(p => p.id === currentPO)?.items?.[idx-1]; // idx is 1-based (seq), items is 0-based
         if (item) {
           item.pic = res.url;
           item.picPrintUrl = res.url;
@@ -4060,7 +4060,7 @@ async function poHandlePic(idx, file, existingFileId) {
       } else {
         // Fallback: store locally if Drive fails
         if (cell) cell.innerHTML = `<img src="${base64}">`;
-        const item = poStore.find(p => p.id === currentPO)?.items?.[idx];
+        const item = poStore.find(p => p.id === currentPO)?.items?.[idx-1]; // idx is 1-based (seq), items is 0-based
         if (item) { item.pic = base64; if(cell) cell.setAttribute('data-pic', base64); }
         toast('⚠ Drive upload failed, saved locally', 'w');
       }
