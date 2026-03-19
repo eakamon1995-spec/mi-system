@@ -4248,7 +4248,7 @@ function renderPOList(){
   renderPager('poPager',pages,poPage,p=>{poPage=p;renderPOList();});
 }
 
-function editPO(id){
+function editPO(id){ currentPO=id;
   const po=poStore.find(p=>p.id===id);if(!po) return;
   goPage('create-po',document.querySelector('.ni[onclick*="create-po"]'));
   setTimeout(()=>{
