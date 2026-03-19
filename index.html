@@ -4111,7 +4111,8 @@ function exportPOExcel(){
       pack:tr.querySelector('.po-pack')?.value||'',
       remFac:tr.querySelector('.po-remfac')?.value||'',
       remDesign:tr.querySelector('.po-remdesign')?.value||'',
-      designRef:tr.querySelector('.po-designref')?.value||''
+      designRef:tr.querySelector('.po-designref')?.value||'',
+      picUrl:tr.querySelector('.po-pic-cell')?.getAttribute('data-pic')||''
     });
   });
   if(!items.length){toast('No items to export','e');return;}
@@ -4158,7 +4159,7 @@ function exportPOExcel(){
       it.remFac,
       it.remDesign,
       it.designRef,
-      ''
+      it.picUrl
     ]);
   });
   // Total row
@@ -4386,13 +4387,7 @@ function exportSinglePO(id){
 async function imgUrlToBase64(url){
   if(!url)return '';
   if(url.startsWith('data:'))return url;
-  try{
-    const u=url.replace(/thumbnail[?]id=/,'uc?export=view&id=').replace(/[&]sz=w[0-9]+/,'');
-    const r=await fetch(u,{credentials:'include'});
-    if(!r.ok)return '';
-    const blob=await r.blob();
-    return new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res('');fr.readAsDataURL(blob);});
-  }catch(e){return '';}
+  return url; // Fix: return URL directly, avoids Drive CORS block
 }
 async function printSinglePO(id){
   const po=poStore.find(p=>p.id===id); if(!po) return;
