@@ -10,36 +10,28 @@
     console.log('[patch] Auto-set mi_erpUrl for new device');
   }
 
-  // 2) Override window.skipLogin — ถ้า mi_erpUrl ตั้งค่าแล้ว ห้ามเข้า offline mode เด็ดขาด
-  //    ทำงานได้ทุกครั้งที่ skipLogin ถูกเรียก ไม่ว่าจะกดกี่ครั้งหรือ re-login กี่รอบ
-  window.addEventListener('load', function() {
-    var _orig = window.skipLogin;
-    Object.defineProperty(window, 'skipLogin', {
-      get: function() {
-        return function() {
-          if (localStorage.getItem('mi_erpUrl')) {
-            console.log('[patch] skipLogin blocked — use online login instead');
-            return; // ป้องกัน offline mode
-          }
-          if (typeof _orig === 'function') _orig();
-        };
-      },
-      configurable: true
-    });
-    console.log('[patch] skipLogin override installed');
-  });
+  // 2) Override window.skipLogin — direct assignment (ไม่ใช้ Object.defineProperty)
+  //    patch.js โหลดหลัง main script แล้ว → skipLogin ถูก define ไว้แล้ว → = ได้เลย
+  //    Object.defineProperty ใช้ไม่ได้เพราะ global function declaration เป็น configurable:false
+  var _origSkip = window.skipLogin;
+  window.skipLogin = function() {
+    if (localStorage.getItem('mi_erpUrl')) {
+      console.log('[patch] skipLogin blocked — use online login instead');
+      return; // ป้องกัน offline mode เด็ดขาด
+    }
+    if (typeof _origSkip === 'function') _origSkip();
+  };
+  console.log('[patch] skipLogin override installed');
 
   // 3) MutationObserver — ซ่อนปุ่ม Offline และ hint ทุกครั้งที่ DOM เปลี่ยน
   //    ครอบคลุม: login ครั้งแรก, logout+re-login, สลับ account
   function hideOfflineUI() {
-    // ซ่อน hint "ต้องตั้ง API URL"
     document.querySelectorAll('*').forEach(function(el) {
       if (!el.children.length && el.textContent &&
           (el.textContent.includes('ต้องตั้ง API URL') || el.textContent.includes('ตั้งค่า API URL'))) {
         if (el.parentElement) el.parentElement.style.display = 'none';
       }
     });
-    // ซ่อนปุ่ม Offline ทุกปุ่มที่มี text "Offline" หรือ "ออฟไลน์"
     document.querySelectorAll('button, a').forEach(function(el) {
       if (el.textContent.includes('Offline') || el.textContent.includes('ออฟไลน์')) {
         el.style.display = 'none';
