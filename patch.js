@@ -3,10 +3,25 @@
 // FIX 4: Auto-set default GAS URL — all devices/IPs work without manual config
 (function() {
   var D = 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
-  if (!localStorage.getItem('mi_erpUrl')) {
+  var wasEmpty = !localStorage.getItem('mi_erpUrl');
+  if (wasEmpty) {
     localStorage.setItem('mi_erpUrl', D);
     console.log('[patch] Auto-set mi_erpUrl for new device');
   }
+  // After DOM ready: hide the "must configure API URL" warning and show login normally
+  document.addEventListener('DOMContentLoaded', function() {
+    // Hide the "ต้องตั้ง API URL" hint — URL is now set automatically
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (node.textContent.includes('ต้องตั้ง API URL') || node.textContent.includes('ตั้งค่า API URL')) {
+        node.parentElement.style.display = 'none';
+      }
+    }
+    // If skipLogin hint is still visible, swap its text to something helpful
+    var offlineBtn = Array.from(document.querySelectorAll('button')).find(function(b) { return b.textContent.includes('Offline'); });
+    if (offlineBtn) offlineBtn.style.display = 'none';
+  }, { once: true });
 })();
 
 // FIX 5: Internet disconnect/reconnect protection
