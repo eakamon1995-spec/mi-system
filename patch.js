@@ -75,25 +75,23 @@
   if (!navigator.onLine) banner.style.display = 'block';
 })();
 
-// FIX 6: Auto-sync PO/Stock every 5 seconds after login
+// FIX 6: Keep-alive ping — warm up GAS server every 4 min so sync/login is fast
 (function() {
-  var SYNC_SEC = 5;
-  var _applied = false;
-  function tryApply() {
-    if (_applied) return;
-    if (window.erpCurrentUser && window.erpCurrentUser.id &&
-        window.erpCurrentUser.id !== 'LOCAL' &&
-        typeof window.startPolling === 'function') {
-      window.startPolling(SYNC_SEC);
-      _applied = true;
-      console.log('[patch] Auto-sync set to ' + SYNC_SEC + 's');
-    }
+  var PING_MS = 4 * 60 * 1000; // 4 minutes
+
+  function ping() {
+    var url = localStorage.getItem('mi_erpUrl');
+    if (!url) return;
+    // lightweight GET — no-cors so no CORS error, GAS wakes up and stays warm
+    fetch(url + '?action=ping', { method: 'GET', mode: 'no-cors', cache: 'no-store' })
+      .catch(function() {});
+    console.log('[patch] keep-alive ping sent');
   }
-  var _t = setInterval(function() { tryApply(); if (_applied) clearInterval(_t); }, 500);
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && _applied && typeof window.startPolling === 'function') {
-      window.startPolling(SYNC_SEC);
-      console.log('[patch] Tab visible — re-sync triggered');
-    }
-  });
+
+  // First ping 15s after page load (give page time to initialize)
+  // then every 4 minutes to keep GAS warm
+  setTimeout(function() {
+    ping();
+    setInterval(ping, PING_MS);
+  }, 15000);
 })();
