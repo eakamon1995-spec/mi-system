@@ -16,17 +16,28 @@
   var _origSkip = window.skipLogin;
   window.skipLogin = function() {
     if (localStorage.getItem('mi_erpUrl')) {
-      console.log('[patch] skipLogin blocked — resetting LOCAL state');
-      // catch block อาจตั้ง erpCurrentUser=LOCAL ก่อนเรียก skipLogin → reset
+      console.log('[patch] skipLogin blocked');
+      // ถ้า mi_erpToken + mi_erpUser มีอยู่แล้ว = login สำเร็จแล้ว แต่ background syncUsersToSheets fail
+      // → restore erpCurrentUser จาก localStorage แทนการ offline
+      var savedToken = localStorage.getItem('mi_erpToken');
+      var savedUser  = localStorage.getItem('mi_erpUser');
+      if (savedToken && savedUser &&
+          window.erpCurrentUser && window.erpCurrentUser.id === 'LOCAL') {
+        try {
+          window.erpCurrentUser = JSON.parse(savedUser);
+          console.log('[patch] session restored after GAS sync fail — user: ' + window.erpCurrentUser.id);
+          return; // ✅ stay logged in, sync failure non-fatal
+        } catch(e) { console.log('[patch] restore parse error', e); }
+      }
+      // login ยังไม่สำเร็จ (ไม่มี token) — reset LOCAL state + แสดง error
       if (window.erpCurrentUser && window.erpCurrentUser.id === 'LOCAL') {
         window.erpCurrentUser = null;
-        console.log('[patch] erpCurrentUser reset from LOCAL');
+        console.log('[patch] erpCurrentUser reset from LOCAL (initial login fail)');
       }
-      // แสดง error ให้ user ทราบว่า login ล้มเหลว (GAS timeout/error)
       if (typeof window.showLoginErr === 'function') {
         window.showLoginErr('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — กรุณาลองใหม่อีกครั้ง');
       }
-      return; // ป้องกัน offline mode เด็ดขาด
+      return;
     }
     if (typeof _origSkip === 'function') _origSkip();
   };
