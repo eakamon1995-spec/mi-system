@@ -34,8 +34,13 @@ async function patchMISystem(token) {
   const found2 = content.includes(old2);
   console.log('Fix2 (ttCtn) found:', found2);
   if (found2) content = content.replace(old2, new2);
-
-  if (!found1 && !found2) {
+  // FIX 3: GAS 503 retry (แก้ Network error ถาวร)
+  const old3 = "    return { ok: false, error: 'Network error: ' + e.message };\n  }\n}";
+  const new3 = "    try{await new Promise(r=>setTimeout(r,3000));const _r=await fetch(erpApiUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body),redirect:'follow',mode:'cors'});const _t=await _r.text();try{return JSON.parse(_t);}catch{return{ok:false,error:'Invalid JSON on retry'};}}catch(_e){return{ok:false,error:'Network error: '+_e.message};};\n  }\n}";
+  const found3 = content.includes(old3);
+  console.log('Fix3 (retry) found:', found3);
+  if (found3) content = content.replace(old3, new3);
+  if (!found1 && !found2 && !found3) {
     console.error('Neither fix found — already patched or pattern changed');
     return;
   }
