@@ -1,41 +1,29 @@
-// ── RUNTIME PATCH (runs automatically when page loads) ───────────────────────
-
-// FIX 4: Auto-set default GAS URL + block skipLogin + MutationObserver (รองรับ SPA re-render)
+// ── RUNTIME PATCH (runs automatically when page loads) ──────────────────────
+// FIX 4: Auto-set default GAS URL + block skipLogin + MutationObserver
 (function() {
   var D = 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
-
-  // 1) Auto-set URL สำหรับเครื่องใหม่ที่ยังไม่เคยตั้งค่า
   if (!localStorage.getItem('mi_erpUrl')) {
     localStorage.setItem('mi_erpUrl', D);
     console.log('[patch] Auto-set mi_erpUrl for new device');
   }
-
-  // 2) Override window.skipLogin — direct assignment (ไม่ใช้ Object.defineProperty)
-  //    patch.js โหลดหลัง main script แล้ว → skipLogin ถูก define ไว้แล้ว → = ได้เลย
-  //    Object.defineProperty ใช้ไม่ได้เพราะ global function declaration เป็น configurable:false
   var _origSkip = window.skipLogin;
   window.skipLogin = function() {
     if (localStorage.getItem('mi_erpUrl')) {
       console.log('[patch] skipLogin blocked');
-      // ถ้า mi_erpToken + mi_erpUser มีอยู่แล้ว = login สำเร็จแล้ว แต่ background syncUsersToSheets fail
-      // → restore erpCurrentUser จาก localStorage แทนการ offline
       var savedToken = localStorage.getItem('mi_erpToken');
       var savedUser  = localStorage.getItem('mi_erpUser');
-      if (savedToken && savedUser &&
-          window.erpCurrentUser && window.erpCurrentUser.id === 'LOCAL') {
+      if (savedToken && savedUser && window.erpCurrentUser && window.erpCurrentUser.id === 'LOCAL') {
         try {
           window.erpCurrentUser = JSON.parse(savedUser);
-          console.log('[patch] session restored after GAS sync fail — user: ' + window.erpCurrentUser.id);
-          return; // ✅ stay logged in, sync failure non-fatal
+          console.log('[patch] session restored — user: ' + window.erpCurrentUser.id);
+          return;
         } catch(e) { console.log('[patch] restore parse error', e); }
       }
-      // login ยังไม่สำเร็จ (ไม่มี token) — reset LOCAL state + แสดง error
       if (window.erpCurrentUser && window.erpCurrentUser.id === 'LOCAL') {
         window.erpCurrentUser = null;
-        console.log('[patch] erpCurrentUser reset from LOCAL (initial login fail)');
       }
       if (typeof window.showLoginErr === 'function') {
-        window.showLoginErr('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — กรุณาลองใหม่อีกครั้ง');
+        window.showLoginErr('\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E40\u0E0B\u0E34\u0E23\u0E4C\u0E1F\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07');
       }
       return;
     }
@@ -43,38 +31,30 @@
   };
   console.log('[patch] skipLogin override installed');
 
-  // 3) MutationObserver — ซ่อนปุ่ม Offline และ hint ทุกครั้งที่ DOM เปลี่ยน
-  //    ครอบคลุม: login ครั้งแรก, logout+re-login, สลับ account
   function hideOfflineUI() {
     document.querySelectorAll('*').forEach(function(el) {
       if (!el.children.length && el.textContent &&
-          (el.textContent.includes('ต้องตั้ง API URL') || el.textContent.includes('ตั้งค่า API URL'))) {
-        el.style.display = 'none'; // hide hint text only (not parent — avoids hiding login box)
+          (el.textContent.includes('\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E31\u0E49\u0E07 API URL') ||
+           el.textContent.includes('\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 API URL'))) {
+        el.style.display = 'none';
       }
     });
     document.querySelectorAll('button, a').forEach(function(el) {
-      if (el.textContent.includes('Offline') || el.textContent.includes('ออฟไลน์')) {
+      if (el.textContent.includes('Offline') || el.textContent.includes('\u0E2D\u0E2D\u0E1F\u0E44\u0E25\u0E19\u0E4C')) {
         el.style.display = 'none';
       }
     });
   }
-
   function startObserver() {
     hideOfflineUI();
     var obs = new MutationObserver(function(muts) {
-      if (muts.some(function(m) { return m.addedNodes.length > 0; })) {
-        hideOfflineUI();
-      }
+      if (muts.some(function(m) { return m.addedNodes.length > 0; })) hideOfflineUI();
     });
     obs.observe(document.body, { childList: true, subtree: true });
-    console.log('[patch] MutationObserver started — Offline button blocked');
+    console.log('[patch] MutationObserver started');
   }
-
-  if (document.body) {
-    startObserver();
-  } else {
-    document.addEventListener('DOMContentLoaded', startObserver);
-  }
+  if (document.body) startObserver();
+  else document.addEventListener('DOMContentLoaded', startObserver);
 })();
 
 // FIX 5: Internet disconnect/reconnect protection
@@ -82,15 +62,11 @@
   var banner = document.createElement('div');
   banner.id = 'net-offline-banner';
   banner.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-family:"Sarabun",sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4);';
-  banner.innerHTML = '🔴 <b>ไม่มีอินเทอร์เน็ต</b> — ระบบหยุด sync ชั่วคราว — จะกลับมาอัตโนมัติเมื่อเชื่อมต่อใหม่';
+  banner.textContent = '\uD83D\uDD34 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E34\u0E19\u0E40\u0E17\u0E2D\u0E23\u0E4C\u0E40\u0E19\u0E47\u0E15 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E2B\u0E22\u0E38\u0E14 sync \u0E0A\u0E31\u0E48\u0E27\u0E04\u0E23\u0E32\u0E27';
   document.body.appendChild(banner);
-  window.addEventListener('offline', function() {
-    banner.style.display = 'block';
-    console.log('[patch] Internet offline — sync paused');
-  });
+  window.addEventListener('offline', function() { banner.style.display = 'block'; });
   window.addEventListener('online', function() {
     banner.style.display = 'none';
-    console.log('[patch] Internet reconnected — resuming sync');
     setTimeout(function() {
       if (typeof window.pollSync === 'function') window.pollSync();
       else if (typeof window.manualSync === 'function') window.manualSync();
@@ -99,114 +75,25 @@
   if (!navigator.onLine) banner.style.display = 'block';
 })();
 
-// ── CONSOLE UTILITY (run patchMISystem('token') to patch index.html) ───────────
-// ============================================================
-//  patch.js — Run in browser console on github.com while logged in
-//  Steps:
-//  1. Go to https://github.com/settings/tokens → create token with 'repo' scope
-//  2. Open browser console on github.com
-//  3. Paste this script and replace YOUR_TOKEN_HERE
-// ============================================================
-
-async function patchMISystem(token) {
-  const owner = 'eakamon1995-spec';
-  const repo = 'mi-system';
-  const path = 'index.html';
-  const headers = {
-    'Authorization': 'token ' + token,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json'
-  };
-
-  console.log('Step 1: Fetching file content...');
-  const rawResp = await fetch('https://raw.githubusercontent.com/' + owner + '/' + repo + '/main/' + path);
-  let content = await rawResp.text();
-  console.log('Fetched:', content.length, 'chars');
-
-  // FIX 1: เพิ่ม material column
-  const old1 = `${it.engName||''}</td>\n      <td style="text-align:right">`;
-  const new1 = `${it.engName||''}</td>\n      <td>${it.material||''}</td>\n      <td style="text-align:right">`;
-  const found1 = content.includes(old1);
-  console.log('Fix1 (material) found:', found1);
-  if (found1) content = content.replace(old1, new1);
-
-  // FIX 2: แก้ ttCtn floating point
-  const old2 = '${it.ttCtn||0}</td>';
-  const new2 = '${parseFloat((it.ttCtn||0).toFixed(3))}</td>';
-  const found2 = content.includes(old2);
-  console.log('Fix2 (ttCtn) found:', found2);
-  if (found2) content = content.replace(old2, new2);
-  // FIX 3: GAS 503 retry (แก้ Network error ถาวร)
-  const old3 = "    return { ok: false, error: 'Network error: ' + e.message };\n  }\n}";
-  const new3 = "    try{await new Promise(r=>setTimeout(r,3000));const _r=await fetch(erpApiUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body),redirect:'follow',mode:'cors'});const _t=await _r.text();try{return JSON.parse(_t);}catch{return{ok:false,error:'Invalid JSON on retry'};}}catch(_e){return{ok:false,error:'Network error: '+_e.message};};\n  }\n}";
-  const found3 = content.includes(old3);
-  console.log('Fix3 (retry) found:', found3);
-  if (found3) content = content.replace(old3, new3);
-  if (!found1 && !found2 && !found3) {
-    console.error('Neither fix found — already patched or pattern changed');
-    return;
+// FIX 6: Auto-sync PO/Stock every 5 seconds after login
+(function() {
+  var SYNC_SEC = 5;
+  var _applied = false;
+  function tryApply() {
+    if (_applied) return;
+    if (window.erpCurrentUser && window.erpCurrentUser.id &&
+        window.erpCurrentUser.id !== 'LOCAL' &&
+        typeof window.startPolling === 'function') {
+      window.startPolling(SYNC_SEC);
+      _applied = true;
+      console.log('[patch] Auto-sync set to ' + SYNC_SEC + 's');
+    }
   }
-
-  console.log('Step 2: Getting current file SHA...');
-  const infoResp = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/refs/heads/main', { headers });
-  const refData = await infoResp.json();
-  const latestCommitSha = refData.object.sha;
-  console.log('Latest commit:', latestCommitSha);
-
-  console.log('Step 3: Creating blob...');
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(content);
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  const b64 = btoa(binary);
-
-  const blobResp = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/blobs', {
-    method: 'POST', headers,
-    body: JSON.stringify({ content: b64, encoding: 'base64' })
+  var _t = setInterval(function() { tryApply(); if (_applied) clearInterval(_t); }, 500);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && _applied && typeof window.startPolling === 'function') {
+      window.startPolling(SYNC_SEC);
+      console.log('[patch] Tab visible — re-sync triggered');
+    }
   });
-  const blobData = await blobResp.json();
-  console.log('Blob SHA:', blobData.sha);
-
-  console.log('Step 4: Getting base tree...');
-  const commitResp = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/commits/' + latestCommitSha, { headers });
-  const commitData = await commitResp.json();
-  const baseTreeSha = commitData.tree.sha;
-
-  console.log('Step 5: Creating new tree...');
-  const treeResp = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/trees', {
-    method: 'POST', headers,
-    body: JSON.stringify({
-      base_tree: baseTreeSha,
-      tree: [{ path, mode: '100644', type: 'blob', sha: blobData.sha }]
-    })
-  });
-  const treeData = await treeResp.json();
-  console.log('New tree SHA:', treeData.sha);
-
-  console.log('Step 6: Creating commit...');
-  const newCommitResp = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/commits', {
-    method: 'POST', headers,
-    body: JSON.stringify({
-      message: 'fix: add material column in print table, fix ttCtn float',
-      tree: treeData.sha,
-      parents: [latestCommitSha]
-    })
-  });
-  const newCommitData = await newCommitResp.json();
-  console.log('New commit SHA:', newCommitData.sha);
-
-  console.log('Step 7: Updating ref...');
-  const updateResp = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/refs/heads/main', {
-    method: 'PATCH', headers,
-    body: JSON.stringify({ sha: newCommitData.sha, force: false })
-  });
-  const updateData = await updateResp.json();
-  console.log('Done! Ref updated:', updateData.object?.sha);
-  console.log('View at: https://github.com/' + owner + '/' + repo + '/commit/' + newCommitData.sha);
-}
-
-// ใส่ token แล้วรัน:
-// patchMISystem('ghp_yourTokenHere');
+})();
