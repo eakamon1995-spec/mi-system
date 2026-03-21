@@ -1,27 +1,68 @@
 // ── RUNTIME PATCH (runs automatically when page loads) ───────────────────────
 
-// FIX 4: Auto-set default GAS URL — all devices/IPs work without manual config
+// FIX 4: Auto-set default GAS URL + block skipLogin + MutationObserver (รองรับ SPA re-render)
 (function() {
   var D = 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
-  var wasEmpty = !localStorage.getItem('mi_erpUrl');
-  if (wasEmpty) {
+
+  // 1) Auto-set URL สำหรับเครื่องใหม่ที่ยังไม่เคยตั้งค่า
+  if (!localStorage.getItem('mi_erpUrl')) {
     localStorage.setItem('mi_erpUrl', D);
     console.log('[patch] Auto-set mi_erpUrl for new device');
   }
-  // After DOM ready: hide the "must configure API URL" warning and show login normally
-  document.addEventListener('DOMContentLoaded', function() {
-    // Hide the "ต้องตั้ง API URL" hint — URL is now set automatically
-    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    var node;
-    while ((node = walker.nextNode())) {
-      if (node.textContent.includes('ต้องตั้ง API URL') || node.textContent.includes('ตั้งค่า API URL')) {
-        node.parentElement.style.display = 'none';
+
+  // 2) Override window.skipLogin — ถ้า mi_erpUrl ตั้งค่าแล้ว ห้ามเข้า offline mode เด็ดขาด
+  //    ทำงานได้ทุกครั้งที่ skipLogin ถูกเรียก ไม่ว่าจะกดกี่ครั้งหรือ re-login กี่รอบ
+  window.addEventListener('load', function() {
+    var _orig = window.skipLogin;
+    Object.defineProperty(window, 'skipLogin', {
+      get: function() {
+        return function() {
+          if (localStorage.getItem('mi_erpUrl')) {
+            console.log('[patch] skipLogin blocked — use online login instead');
+            return; // ป้องกัน offline mode
+          }
+          if (typeof _orig === 'function') _orig();
+        };
+      },
+      configurable: true
+    });
+    console.log('[patch] skipLogin override installed');
+  });
+
+  // 3) MutationObserver — ซ่อนปุ่ม Offline และ hint ทุกครั้งที่ DOM เปลี่ยน
+  //    ครอบคลุม: login ครั้งแรก, logout+re-login, สลับ account
+  function hideOfflineUI() {
+    // ซ่อน hint "ต้องตั้ง API URL"
+    document.querySelectorAll('*').forEach(function(el) {
+      if (!el.children.length && el.textContent &&
+          (el.textContent.includes('ต้องตั้ง API URL') || el.textContent.includes('ตั้งค่า API URL'))) {
+        if (el.parentElement) el.parentElement.style.display = 'none';
       }
-    }
-    // If skipLogin hint is still visible, swap its text to something helpful
-    var offlineBtn = Array.from(document.querySelectorAll('button')).find(function(b) { return b.textContent.includes('Offline'); });
-    if (offlineBtn) offlineBtn.style.display = 'none';
-  }, { once: true });
+    });
+    // ซ่อนปุ่ม Offline ทุกปุ่มที่มี text "Offline" หรือ "ออฟไลน์"
+    document.querySelectorAll('button, a').forEach(function(el) {
+      if (el.textContent.includes('Offline') || el.textContent.includes('ออฟไลน์')) {
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  function startObserver() {
+    hideOfflineUI();
+    var obs = new MutationObserver(function(muts) {
+      if (muts.some(function(m) { return m.addedNodes.length > 0; })) {
+        hideOfflineUI();
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    console.log('[patch] MutationObserver started — Offline button blocked');
+  }
+
+  if (document.body) {
+    startObserver();
+  } else {
+    document.addEventListener('DOMContentLoaded', startObserver);
+  }
 })();
 
 // FIX 5: Internet disconnect/reconnect protection
