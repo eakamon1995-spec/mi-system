@@ -49,7 +49,7 @@
     document.querySelectorAll('*').forEach(function(el) {
       if (!el.children.length && el.textContent &&
           (el.textContent.includes('ต้องตั้ง API URL') || el.textContent.includes('ตั้งค่า API URL'))) {
-        if (el.parentElement) el.parentElement.style.display = 'none';
+        el.style.display = 'none'; // hide hint text only (not parent — avoids hiding login box)
       }
     });
     document.querySelectorAll('button, a').forEach(function(el) {
