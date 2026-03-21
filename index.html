@@ -2327,7 +2327,7 @@ async function apiCall(action, payload = {}) {
     }
   } catch (e) {
     dbg(`fetch error: ${e.message}`, 'err');
-    return { ok: false, error: 'Network error: ' + e.message };
+    try{await new Promise(r=>setTimeout(r,3000));const _r=await fetch(erpApiUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body),redirect:'follow',mode:'cors'});const _t=await _r.text();try{return JSON.parse(_t);}catch{return{ok:false,error:'Invalid JSON on retry'};}}catch(_e){return{ok:false,error:'Network error: '+_e.message};}
   }
 }
 
