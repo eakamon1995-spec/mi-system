@@ -1,3 +1,37 @@
+// ── RUNTIME PATCH (runs automatically when page loads) ───────────────────────
+
+// FIX 4: Auto-set default GAS URL — all devices/IPs work without manual config
+(function() {
+  var D = 'https://script.google.com/macros/s/AKfycbw4PeI5IhPOWTZSxUKRyZESKg3Dp9s_UzZPJF3fHVyv5vnewY8dNvyaIJY4VQwUqpQRXw/exec';
+  if (!localStorage.getItem('mi_erpUrl')) {
+    localStorage.setItem('mi_erpUrl', D);
+    console.log('[patch] Auto-set mi_erpUrl for new device');
+  }
+})();
+
+// FIX 5: Internet disconnect/reconnect protection
+(function() {
+  var banner = document.createElement('div');
+  banner.id = 'net-offline-banner';
+  banner.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-family:"Sarabun",sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+  banner.innerHTML = '🔴 <b>ไม่มีอินเทอร์เน็ต</b> — ระบบหยุด sync ชั่วคราว — จะกลับมาอัตโนมัติเมื่อเชื่อมต่อใหม่';
+  document.body.appendChild(banner);
+  window.addEventListener('offline', function() {
+    banner.style.display = 'block';
+    console.log('[patch] Internet offline — sync paused');
+  });
+  window.addEventListener('online', function() {
+    banner.style.display = 'none';
+    console.log('[patch] Internet reconnected — resuming sync');
+    setTimeout(function() {
+      if (typeof window.pollSync === 'function') window.pollSync();
+      else if (typeof window.manualSync === 'function') window.manualSync();
+    }, 1500);
+  });
+  if (!navigator.onLine) banner.style.display = 'block';
+})();
+
+// ── CONSOLE UTILITY (run patchMISystem('token') to patch index.html) ───────────
 // ============================================================
 //  patch.js — Run in browser console on github.com while logged in
 //  Steps:
