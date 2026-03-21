@@ -16,7 +16,16 @@
   var _origSkip = window.skipLogin;
   window.skipLogin = function() {
     if (localStorage.getItem('mi_erpUrl')) {
-      console.log('[patch] skipLogin blocked — use online login instead');
+      console.log('[patch] skipLogin blocked — resetting LOCAL state');
+      // catch block อาจตั้ง erpCurrentUser=LOCAL ก่อนเรียก skipLogin → reset
+      if (window.erpCurrentUser && window.erpCurrentUser.id === 'LOCAL') {
+        window.erpCurrentUser = null;
+        console.log('[patch] erpCurrentUser reset from LOCAL');
+      }
+      // แสดง error ให้ user ทราบว่า login ล้มเหลว (GAS timeout/error)
+      if (typeof window.showLoginErr === 'function') {
+        window.showLoginErr('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — กรุณาลองใหม่อีกครั้ง');
+      }
       return; // ป้องกัน offline mode เด็ดขาด
     }
     if (typeof _origSkip === 'function') _origSkip();
