@@ -3807,6 +3807,13 @@ function calcTotal(){
 }
 
 function savePO(){
+  // Block save if photos still uploading
+  const uploadingCells = document.querySelectorAll('#poItemsBody .po-pic-cell');
+  for(const c of uploadingCells){
+    if(c.textContent.includes('Uploading')||c.textContent.includes('Compressing')){
+      toast('⏳ กรุณารอให้รูปภาพ upload เสร็จก่อน','w');return;
+    }
+  }
   const sup=document.getElementById('poSupplier').value;
   const poNum=document.getElementById('poNumber').value;
   if(!sup){toast('Please select a Supplier','e');return;}
@@ -3851,6 +3858,10 @@ function savePO(){
     createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
   // Check if editing existing
   const ei=poStore.findIndex(p=>p.id===poNum);
+  // Block duplicate PO number: if exists but not currently editing this PO
+  if(ei>=0 && currentPO !== poNum){
+    toast('❌ PO '+poNum+' มีอยู่แล้ว! กรุณาตรวจสอบเลข PO','e');return;
+  }
   if(ei>=0){poStore[ei]=po;}else{poStore.push(po);poCounter++;}
   persist(); // บันทึก local ก่อนเสมอ
   toast(`💾 บันทึก PO ${poNum} แล้ว...`,'s');
@@ -5578,8 +5589,9 @@ function getNextBarcode(brand){
 }
 function checkBarcodeDuplicate(pcs,ctn,excludeCode,excludeBrand){
   const all=[...miLib,...koLib];
-  const pcsDup=pcs?all.find(r=>(r.code!==excludeCode||r.brand!==excludeBrand)&&r.pcs===pcs):null;
-  const ctnDup=ctn?all.find(r=>(r.code!==excludeCode||r.brand!==excludeBrand)&&r.ctn===ctn):null;
+  const sp=pcs?String(pcs).trim():'';const sc=ctn?String(ctn).trim():'';
+  const pcsDup=sp?all.find(r=>(r.code!==excludeCode||r.brand!==excludeBrand)&&String(r.pcs||'')==sp):null;
+  const ctnDup=sc?all.find(r=>(r.code!==excludeCode||r.brand!==excludeBrand)&&String(r.ctn||'')==sc):null;
   return {pcsDup,ctnDup};
 }
 function showBcPatternGuide(){
