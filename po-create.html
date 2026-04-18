@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MI System — Create PO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #1a1d27; --bg3: #23273a;
+    --border: #2e3347; --text: #e8eaf0; --muted: #8b90a8;
+    --accent: #4f7cff; --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+    /* column color coding */
+    --col-manual: rgba(34,197,94,.08);    /* green – Ex-work manual entry */
+    --col-auto:   rgba(245,158,11,.08);   /* yellow – auto-calc */
+    --col-entry:  rgba(79,124,255,.08);   /* blue – entry fields */
+  }
+  body { background:var(--bg); color:var(--text); font-family:'Sarabun','Segoe UI',sans-serif; font-size:13px; min-height:100vh; }
+
+  /* HEADER */
+  .header { background:var(--bg2); border-bottom:1px solid var(--border); padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:52px; position:sticky; top:0; z-index:100; }
+  .header-left { display:flex; align-items:center; gap:10px; }
+  .logo { font-size:17px; font-weight:700; color:var(--accent); letter-spacing:-.5px; }
+  .logo span { color:var(--muted); font-weight:400; }
+  .back-link { color:var(--muted); text-decoration:none; font-size:12px; display:flex; align-items:center; gap:4px; padding:4px 8px; border-radius:6px; transition:background .15s; }
+  .back-link:hover { background:var(--bg3); color:var(--text); }
+  .header-right { display:flex; align-items:center; gap:8px; }
+  .btn { display:inline-flex; align-items:center; gap:5px; padding:7px 13px; border-radius:8px; font-size:13px; font-family:inherit; border:none; cursor:pointer; transition:all .15s; font-weight:500; text-decoration:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#3d6ae0; }
+  .btn-secondary { background:var(--bg3); color:var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover { background:var(--border); }
+  .btn-success { background:rgba(34,197,94,.15); color:var(--green); border:1px solid rgba(34,197,94,.3); }
+  .btn-success:hover { background:rgba(34,197,94,.25); }
+  .btn-danger { background:rgba(239,68,68,.12); color:var(--red); border:1px solid rgba(239,68,68,.25); }
+  .btn-danger:hover { background:rgba(239,68,68,.22); }
+  .btn-sm { padding:4px 9px; font-size:12px; border-radius:6px; }
+  .btn-xs { padding:3px 7px; font-size:11px; border-radius:5px; }
+
+  /* LAYOUT */
+  .page { max-width:100%; padding:16px 20px; }
+
+  /* PO HEADER CARD */
+  .po-header-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+    padding:20px; margin-bottom:16px;
+  }
+  .company-header {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    padding-bottom:16px; border-bottom:1px solid var(--border); margin-bottom:16px;
+  }
+  .company-name { font-size:18px; font-weight:700; color:var(--text); }
+  .company-en { font-size:13px; color:var(--muted); margin-top:2px; }
+  .company-addr { font-size:12px; color:var(--muted); margin-top:4px; line-height:1.5; }
+  .po-number-box {
+    text-align:right;
+  }
+  .po-number-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .po-number-val {
+    font-family:'Courier New',monospace; font-size:20px; font-weight:700;
+    color:var(--accent); letter-spacing:1px;
+  }
+
+  /* FORM FIELDS GRID */
+  .po-fields { display:grid; grid-template-columns:repeat(4,1fr) repeat(2,1fr); gap:12px; }
+  @media(max-width:1100px){ .po-fields { grid-template-columns:repeat(3,1fr); } }
+  .po-field { display:flex; flex-direction:column; gap:4px; }
+  .po-field label { font-size:11px; color:var(--muted); font-weight:500; }
+  .po-field input, .po-field select {
+    background:var(--bg3); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:7px 10px; font-size:13px; font-family:inherit;
+    outline:none; transition:border-color .15s;
+  }
+  .po-field input:focus, .po-field select:focus { border-color:var(--accent); }
+  .po-field input[readonly] { opacity:.6; background:var(--bg); }
+  .po-field.span2 { grid-column:span 2; }
+
+  /* SUPPLIER SECTION */
+  .sup-section {
+    background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+    padding:16px 20px; margin-bottom:16px;
+  }
+  .sup-section-title { font-size:13px; font-weight:600; color:var(--muted); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+  .sup-fields { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  @media(max-width:900px){ .sup-fields { grid-template-columns:repeat(2,1fr); } }
+  .sup-info-row { display:flex; gap:12px; margin-top:10px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+  .sup-info-chip { background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:4px 10px; }
+
+  /* COLOR LEGEND */
+  .legend { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); }
+  .legend-dot { width:10px; height:10px; border-radius:2px; }
+
+  /* LINE ITEMS TABLE */
+  .items-section {
+    background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+    overflow:hidden; margin-bottom:16px;
+  }
+  .items-toolbar {
+    display:flex; align-items:center; gap:10px; padding:12px 16px;
+    border-bottom:1px solid var(--border); background:var(--bg3);
+  }
+  .items-toolbar h3 { font-size:14px; font-weight:600; flex:1; }
+  .table-scroll { overflow-x:auto; max-height:520px; overflow-y:auto; }
+  table.po-table { width:100%; border-collapse:collapse; font-size:12px; min-width:1900px; }
+  table.po-table thead { position:sticky; top:0; z-index:20; }
+  /* GROUP HEADER ROW */
+  table.po-table th.grp {
+    padding:5px 6px; font-size:10px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,.06);
+    text-align:center; white-space:nowrap;
+  }
+  table.po-table th.grp-info  { background:#1e2235; color:#8b90a8; }
+  table.po-table th.grp-price { background:rgba(34,197,94,.12); color:var(--green); }
+  table.po-table th.grp-qty   { background:rgba(245,158,11,.12); color:var(--amber); }
+  table.po-table th.grp-log   { background:rgba(79,124,255,.12); color:var(--accent); }
+  table.po-table th.grp-rem   { background:#1a1d27; color:#8b90a8; }
+  /* COLUMN HEADER ROW */
+  table.po-table th {
+    padding:7px 6px; font-size:11px; font-weight:600;
+    border-bottom:2px solid var(--border); white-space:nowrap;
+    text-align:center;
+  }
+  table.po-table th.left { text-align:left; }
+  /* color-coded column headers */
+  table.po-table th.h-info    { background:#1b1e2e; color:#8b90a8; }
+  table.po-table th.h-manual  { background:rgba(34,197,94,.10); color:var(--green); border-top:2px solid rgba(34,197,94,.3); }
+  table.po-table th.h-auto    { background:rgba(245,158,11,.10); color:var(--amber); border-top:2px solid rgba(245,158,11,.3); }
+  table.po-table th.h-entry   { background:rgba(79,124,255,.10); color:#a0b4ff; border-top:2px solid rgba(79,124,255,.3); }
+  table.po-table th.h-rem     { background:#191c2a; color:#8b90a8; }
+  table.po-table th .th-sub   { display:block; font-size:9px; font-weight:400; opacity:.6; margin-top:1px; }
+  table.po-table td {
+    padding:4px 4px; border-bottom:1px solid rgba(46,51,71,.4);
+    vertical-align:middle;
+  }
+  table.po-table tr:last-child td { border-bottom:none; }
+  table.po-table tr:hover td { background:rgba(255,255,255,.015); }
+
+  /* Column color coding */
+  .td-manual { background:var(--col-manual); }
+  .td-auto   { background:var(--col-auto); }
+  .td-entry  { background:var(--col-entry); }
+
+  /* Cell inputs */
+  .ci {
+    width:100%; background:transparent; border:none; color:var(--text);
+    font-size:12px; font-family:inherit; outline:none; padding:4px 5px;
+    text-align:right;
+  }
+  .ci.left { text-align:left; }
+  .ci:focus { background:rgba(79,124,255,.12); border-radius:4px; }
+  .ci.auto { color:var(--amber); font-weight:600; background:transparent !important; cursor:default; }
+  .ci[readonly] { color:var(--amber); font-weight:600; cursor:default; }
+  .ci.code-input { font-family:'Courier New',monospace; font-size:11px; }
+
+  /* Seq col */
+  .seq-col { width:30px; text-align:center; color:var(--muted); font-size:11px; }
+  .act-col  { width:30px; text-align:center; }
+
+  /* TOTALS ROW */
+  .totals-row td { background:var(--bg3) !important; font-weight:700; border-top:2px solid var(--border); padding:8px 6px; }
+  .grand-total { font-size:15px; color:var(--green); }
+
+  /* SUMMARY PANEL */
+  .summary-panel {
+    background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+    padding:20px; margin-bottom:16px;
+    display:flex; gap:20px; flex-wrap:wrap; align-items:center;
+  }
+  .summary-item { flex:1; min-width:120px; }
+  .summary-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .summary-val { font-size:20px; font-weight:700; }
+  .summary-val.accent { color:var(--accent); }
+  .summary-val.green { color:var(--green); }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; display:none; align-items:center; justify-content:center; padding:16px; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; }
+  .modal-title { font-size:15px; font-weight:700; margin-bottom:16px; }
+  .modal-row { display:flex; gap:10px; margin-bottom:10px; }
+  .modal-row .form-group { flex:1; display:flex; flex-direction:column; gap:4px; }
+  .modal-row .form-group label { font-size:11px; color:var(--muted); }
+  .modal-row .form-group input, .modal-row .form-group select {
+    background:var(--bg3); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:7px 10px; font-size:13px; font-family:inherit; outline:none;
+  }
+  .modal-row .form-group input:focus, .modal-row .form-group select:focus { border-color:var(--accent); }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+  /* ITEM LOOKUP DROPDOWN */
+  .lookup-wrap { position:relative; }
+  .lookup-list {
+    position:absolute; top:100%; left:0; right:0; z-index:50;
+    background:var(--bg2); border:1px solid var(--accent);
+    border-radius:7px; max-height:180px; overflow-y:auto;
+    box-shadow:0 4px 20px rgba(0,0,0,.4);
+  }
+  .lookup-item {
+    padding:7px 10px; cursor:pointer; font-size:12px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .lookup-item:last-child { border-bottom:none; }
+  .lookup-item:hover { background:rgba(79,124,255,.15); }
+  .lookup-item .lk-code { font-family:monospace; font-weight:700; color:var(--accent); }
+  .lookup-item .lk-name { color:var(--muted); font-size:11px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:20px; right:20px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:11px 16px; font-size:13px; z-index:999; transition:all .3s; transform:translateY(70px); opacity:0; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--green); }
+  .toast.error { border-color:var(--red); }
+  .toast.warn { border-color:var(--amber); }
+
+  /* PRINT */
+  @media print {
+    .header, .items-toolbar .btn, .btn-group, .act-col, .legend, .summary-panel .btn { display:none !important; }
+    body { background:#fff; color:#000; }
+    .po-header-card, .sup-section, .items-section { border:1px solid #ccc; border-radius:0; }
+  }
+
+  /* PO LIST MODAL */
+  .po-list-item {
+    padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .po-list-item:hover { background:rgba(255,255,255,.03); }
+  .po-list-item:last-child { border-bottom:none; }
+  .po-list-num { font-family:monospace; font-weight:700; color:var(--accent); }
+  .po-list-info { font-size:11px; color:var(--muted); }
+  .po-list-status { font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(79,124,255,.1); color:var(--accent); }
+
+  /* LOOKUP HIGHLIGHT */
+  .lookup-item .lk-bc { font-family:monospace; font-size:10px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">MI<span> System</span></span>
+    <a href="index.html" class="back-link">← หน้าหลัก</a>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-secondary btn-sm" onclick="openPOList()">📋 PO ที่บันทึก</button>
+    <a href="items.html" class="btn btn-secondary btn-sm">📦 Items</a>
+    <a href="suppliers.html" class="btn btn-secondary btn-sm">🏢 Suppliers</a>
+    <button class="btn btn-secondary btn-sm" onclick="clearPO()">🆕 ใหม่</button>
+    <button class="btn btn-success btn-sm" onclick="saveDraft()">💾 Draft</button>
+    <button class="btn btn-primary btn-sm" onclick="submitPO()">📤 Submit PO</button>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- COMPANY + PO NUMBER -->
+  <div class="po-header-card">
+    <div class="company-header">
+      <div>
+        <div class="company-name">V.R.TOYS Co., Ltd.</div>
+        <div class="company-en">บริษัท วี.อาร์.ทอยส์ จำกัด</div>
+        <div class="company-addr">25/103,116 M.6 Puttamonton 4, Kratumlom 22<br>Samparn, Nakornprathom 73220 Thailand</div>
+      </div>
+      <div class="po-number-box">
+        <div class="po-number-label">PO NUMBER</div>
+        <div class="po-number-val" id="poNumDisplay">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" id="poDateDisplay"></div>
+      </div>
+    </div>
+
+    <!-- PO FIELDS -->
+    <div class="po-fields">
+      <div class="po-field">
+        <label>Agent *</label>
+        <select id="fAgent" onchange="rebuildPONumber()">
+          <option value="">— เลือก Agent —</option>
+          <option value="YW">YW</option>
+          <option value="HT">HT</option>
+          <option value="QM">QM</option>
+          <option value="BS">BS</option>
+          <option value="Y">Y</option>
+        </select>
+      </div>
+      <div class="po-field">
+        <label>Brand *</label>
+        <select id="fBrand" onchange="rebuildPONumber()">
+          <option value="MI">🔵 MI</option>
+          <option value="KM">🟣 KOMON</option>
+        </select>
+      </div>
+      <div class="po-field">
+        <label>Year-Month (YYMM)</label>
+        <input type="text" id="fYYMM" placeholder="เช่น 2603" maxlength="4" oninput="rebuildPONumber()">
+      </div>
+      <div class="po-field">
+        <label>Seq (xxx)</label>
+        <input type="text" id="fSeq" placeholder="001" maxlength="3" oninput="rebuildPONumber()">
+      </div>
+      <div class="po-field">
+        <label>วันที่สั่ง PO</label>
+        <input type="date" id="fPoDate">
+      </div>
+      <div class="po-field">
+        <label>Delivery Date (เป้าหมาย)</label>
+        <input type="date" id="fDeliveryDate">
+      </div>
+      <div class="po-field">
+        <label>Department</label>
+        <input type="text" id="fDept" placeholder="เช่น Purchasing">
+      </div>
+      <div class="po-field">
+        <label>Currency Rate (THB/USD)</label>
+        <input type="number" id="fRate" placeholder="35.00" step="0.01">
+      </div>
+      <div class="po-field">
+        <label>Commission %</label>
+        <input type="number" id="fCommission" placeholder="0" step="0.1">
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPLIER SECTION -->
+  <div class="sup-section">
+    <div class="sup-section-title">🏭 Supplier Information</div>
+    <div class="sup-fields">
+      <div class="po-field">
+        <label>Supplier *</label>
+        <select id="fSupplier" onchange="onSupplierChange()">
+          <option value="">— เลือก Supplier —</option>
+        </select>
+      </div>
+      <div class="po-field">
+        <label>Supplier Code (auto)</label>
+        <input type="text" id="fSupCode" readonly placeholder="—">
+      </div>
+      <div class="po-field">
+        <label>Contact Name</label>
+        <input type="text" id="fSupContact" placeholder="ชื่อผู้ติดต่อ">
+      </div>
+      <div class="po-field">
+        <label>WeChat / Line</label>
+        <input type="text" id="fSupWechat" placeholder="WeChat / Line ID">
+      </div>
+    </div>
+    <div class="po-field" style="margin-top:12px;max-width:300px">
+      <label>Payment Terms *</label>
+      <select id="fPayment">
+        <option value="">— เลือก Payment Terms —</option>
+        <option value="TT 30%+70%">TT 30%+70%</option>
+        <option value="TT 50%+50%">TT 50%+50%</option>
+        <option value="TT 100%">TT 100%</option>
+        <option value="TT 30 days after shipment">TT 30 days after shipment</option>
+        <option value="LC at sight">LC at sight</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div id="supInfoRow" class="sup-info-row" style="display:none"></div>
+  </div>
+
+  <!-- COLOR LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,.4)"></div>🟢 Ex-work (กรอกเอง)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,.4)"></div>🟡 Auto-calc (คำนวณอัตโนมัติ)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(79,124,255,.4)"></div>🔵 Entry (กรอกข้อมูล)</div>
+  </div>
+
+  <!-- LINE ITEMS -->
+  <div class="items-section">
+    <div class="items-toolbar">
+      <h3>📦 Line Items</h3>
+      <span style="font-size:12px;color:var(--muted)" id="lineCount">0 รายการ</span>
+      <button class="btn btn-secondary btn-sm" onclick="addLine()">+ เพิ่มแถว</button>
+      <button class="btn btn-secondary btn-sm" onclick="addLines5()">+5 แถว</button>
+    </div>
+    <div class="table-scroll">
+      <table class="po-table">
+        <thead>
+          <!-- GROUP ROW -->
+          <tr>
+            <th class="grp grp-info" colspan="2">#</th>
+            <th class="grp grp-info left" colspan="7">📋 Item Info</th>
+            <th class="grp grp-price" colspan="2">💰 Pricing</th>
+            <th class="grp grp-qty" colspan="6">📦 Quantity &amp; Size</th>
+            <th class="grp grp-log" colspan="2">🚚 Logistics</th>
+            <th class="grp grp-rem" colspan="5">📝 Remarks</th>
+            <th class="grp grp-info"></th>
+          </tr>
+          <!-- COLUMN ROW -->
+          <tr>
+            <th class="h-info seq-col">#</th>
+            <th class="h-info left" style="min-width:68px">Agent</th>
+            <th class="h-info left" style="min-width:80px">Code</th>
+            <th class="h-info" style="min-width:108px">Barcode PCS<span class="th-sub">EAN-13</span></th>
+            <th class="h-info" style="min-width:108px">Barcode CTN<span class="th-sub">EAN-13</span></th>
+            <th class="h-info left" style="min-width:68px">FAC<span class="th-sub">Code</span></th>
+            <th class="h-info left" style="min-width:130px">Thai Name<span class="th-sub">ชื่อภาษาไทย</span></th>
+            <th class="h-info left" style="min-width:130px">Eng Name<span class="th-sub">English</span></th>
+            <th class="h-info left" style="min-width:88px">Material<span class="th-sub">วัสดุ</span></th>
+            <th class="h-manual" style="min-width:80px">Ex-work<span class="th-sub">กรอกเอง</span></th>
+            <th class="h-auto"   style="min-width:70px">+2%<span class="th-sub">auto</span></th>
+            <th class="h-entry"  style="min-width:60px">Pcs/Ctn<span class="th-sub">กรอก</span></th>
+            <th class="h-entry"  style="min-width:68px">Tt Ctn<span class="th-sub">กรอก</span></th>
+            <th class="h-auto"   style="min-width:68px">Tt Pcs<span class="th-sub">auto</span></th>
+            <th class="h-info"   style="min-width:80px">Ctn Size<span class="th-sub">LxWxH</span></th>
+            <th class="h-auto"   style="min-width:80px">Ctn Price<span class="th-sub">auto</span></th>
+            <th class="h-auto"   style="min-width:90px">Amount<span class="th-sub">USD auto</span></th>
+            <th class="h-entry"  style="min-width:98px">Delivery<span class="th-sub">วันส่ง</span></th>
+            <th class="h-entry left" style="min-width:76px">Pack<span class="th-sub">บรรจุ</span></th>
+            <th class="h-rem left"   style="min-width:100px">Rem.Factory<span class="th-sub">หมายเหตุโรงงาน</span></th>
+            <th class="h-rem left"   style="min-width:100px">Rem.Design<span class="th-sub">หมายเหตุดีไซน์</span></th>
+            <th class="h-rem left"   style="min-width:88px">Design Ref.<span class="th-sub">อ้างอิง</span></th>
+            <th class="h-rem"        style="min-width:60px">Pic<span class="th-sub">URL</span></th>
+            <th class="h-info act-col"></th>
+          </tr>
+        </thead>
+        <tbody id="lineBody"></tbody>
+        <tfoot>
+          <tr class="totals-row" id="totalsRow">
+            <td colspan="13" style="text-align:right;padding-right:10px;color:var(--muted)">รวม →</td>
+            <td style="text-align:right;color:var(--amber);font-weight:700" id="ttTtPcs">0</td>
+            <td></td>
+            <td></td>
+            <td style="text-align:right" class="grand-total" id="ttAmount">$ 0.00</td>
+            <td colspan="7"></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-panel">
+    <div class="summary-item">
+      <div class="summary-label">จำนวน Items</div>
+      <div class="summary-val accent" id="sumItems">0</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Tt Pcs รวม</div>
+      <div class="summary-val" id="sumTtPcs">0</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Tt Ctn รวม</div>
+      <div class="summary-val" id="sumTtCtn">0</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Grand Total (USD)</div>
+      <div class="summary-val green" id="sumTotal">$ 0.00</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Grand Total (THB)</div>
+      <div class="summary-val" id="sumTHB">฿ 0</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Print</button>
+      <button class="btn btn-success" onclick="saveDraft()">💾 Save Draft</button>
+      <button class="btn btn-primary" onclick="submitPO()">📤 Submit PO</button>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- PO LIST MODAL -->
+<div class="modal-overlay" id="poListOverlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">📋 PO ที่บันทึกไว้</div>
+    <div id="poListContent" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" onclick="clearAllPOs()" style="margin-right:auto">🗑️ ลบทั้งหมด</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('poListOverlay').classList.remove('show')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const DB_ITEMS='mi_db_items', DB_SUP='mi_db_suppliers', DB_POS='mi_db_pos', DB_PO_ITEMS='mi_db_po_items';
+const DB_LAST='mi_po_last_settings';  // remember last PO settings
+let items=[], suppliers=[], pos=[], poItems=[];
+let lines=[], currentPOId=null;
+
+// ── LOAD DB ──────────────────────────────────────────────────────
+function loadDB(){
+  try{items=JSON.parse(localStorage.getItem(DB_ITEMS))||[];}catch{items=[];}
+  try{suppliers=JSON.parse(localStorage.getItem(DB_SUP))||[];}catch{suppliers=[];}   // fix: was DB_SUPPLIERS (undefined)
+  try{pos=JSON.parse(localStorage.getItem(DB_POS))||[];}catch{pos=[];}
+  try{poItems=JSON.parse(localStorage.getItem(DB_PO_ITEMS))||[];}catch{poItems=[];}
+}
+function saveAllDB(){
+  localStorage.setItem(DB_POS,JSON.stringify(pos));
+  localStorage.setItem(DB_PO_ITEMS,JSON.stringify(poItems));
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// ── SUPPLIER SELECT ───────────────────────────────────────────────
+function populateSuppliers(){
+  const sel=document.getElementById('fSupplier');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— เลือก Supplier —</option>';
+  suppliers.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.code||s.id; o.textContent=`${s.name} (${s.code||'—'})`;
+    o.dataset.id=s.id;
+    sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+}
+function onSupplierChange(){
+  const code=document.getElementById('fSupplier').value;
+  const s=suppliers.find(x=>x.code===code||x.id===code);
+  document.getElementById('fSupCode').value=s?s.code||'':'';
+  document.getElementById('fSupContact').value=s&&s.contact?s.contact:'';
+  document.getElementById('fSupWechat').value=s&&s.wechat?s.wechat:(s&&s.line?s.line:'');
+  if(s&&s.payment) document.getElementById('fPayment').value=s.payment;
+  const row=document.getElementById('supInfoRow');
+  if(s){
+    row.style.display='flex';
+    row.innerHTML=[
+      s.city?`<span class="sup-info-chip">📍 ${s.city}</span>`:'',
+      s.type?`<span class="sup-info-chip">${s.type}</span>`:'',
+      s.agent?`<span class="sup-info-chip">Agent: ${s.agent}</span>`:'',
+      s.leadTime?`<span class="sup-info-chip">Lead: ${s.leadTime} วัน</span>`:'',
+      s.email?`<span class="sup-info-chip">✉️ ${s.email}</span>`:''
+    ].filter(Boolean).join('');
+  }else{ row.style.display='none'; }
+}
+
+// ── PO NUMBER ─────────────────────────────────────────────────────
+function rebuildPONumber(){
+  const agent=document.getElementById('fAgent').value;
+  const brand=document.getElementById('fBrand').value;
+  const yymm=document.getElementById('fYYMM').value.trim()||getDefaultYYMM();
+  const seq=document.getElementById('fSeq').value.trim().padStart(3,'0')||'001';
+  if(!agent||!brand){ document.getElementById('poNumDisplay').textContent='—'; return; }
+  const num=`${agent}${brand}${yymm}-${seq}`;
+  document.getElementById('poNumDisplay').textContent=num;
+  const now=new Date();
+  document.getElementById('poDateDisplay').textContent=now.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+}
+function getDefaultYYMM(){
+  const n=new Date();
+  const yy=String(n.getFullYear()).slice(2);
+  const mm=String(n.getMonth()+1).padStart(2,'0');
+  return yy+mm;
+}
+function getPONumber(){
+  const agent=document.getElementById('fAgent').value;
+  const brand=document.getElementById('fBrand').value;
+  const yymm=document.getElementById('fYYMM').value.trim()||getDefaultYYMM();
+  const seq=document.getElementById('fSeq').value.trim().padStart(3,'0')||'001';
+  if(!agent||!brand) return null;
+  return `${agent}${brand}${yymm}-${seq}`;
+}
+
+// ── DELIVERY DATE HELPERS ─────────────────────────────────────────
+// Returns PO date + 7 days as YYYY-MM-DD
+function getDefaultDelivery(){
+  const d=document.getElementById('fPoDate').value;
+  if(!d) return '';
+  const dt=new Date(d);
+  dt.setDate(dt.getDate()+7);
+  return dt.toISOString().slice(0,10);
+}
+
+// ── LAST SETTINGS (persist between POs) ──────────────────────────
+function saveLastSettings(){
+  const s={
+    agent:      document.getElementById('fAgent').value,
+    brand:      document.getElementById('fBrand').value,
+    yymm:       document.getElementById('fYYMM').value,
+    seq:        document.getElementById('fSeq').value,
+    rate:       document.getElementById('fRate').value,
+    commission: document.getElementById('fCommission').value,
+    department: document.getElementById('fDept').value,
+  };
+  localStorage.setItem(DB_LAST, JSON.stringify(s));
+}
+function loadLastSettings(autoIncrementSeq){
+  let last={};
+  try{ last=JSON.parse(localStorage.getItem(DB_LAST))||{}; }catch{}
+  if(last.agent)      document.getElementById('fAgent').value      = last.agent;
+  if(last.brand)      document.getElementById('fBrand').value      = last.brand;
+  if(last.yymm)       document.getElementById('fYYMM').value       = last.yymm;
+  if(last.rate)       document.getElementById('fRate').value       = last.rate;
+  if(last.commission) document.getElementById('fCommission').value = last.commission;
+  if(last.department) document.getElementById('fDept').value       = last.department;
+  // Seq: auto-increment if requested, otherwise restore
+  if(last.seq){
+    const nextSeq = autoIncrementSeq
+      ? String((parseInt(last.seq)||0)+1).padStart(3,'0')
+      : last.seq;
+    document.getElementById('fSeq').value = nextSeq;
+  }
+}
+
+// ── LINE MANAGEMENT ───────────────────────────────────────────────
+function newLine(){
+  // Pre-fill agent from PO header and delivery from PO date+7
+  const agent    = document.getElementById('fAgent').value||'';
+  const delivery = getDefaultDelivery()||'';
+  return {
+    id:uid(), agent, code:'', bcPcs:'', bcCtn:'', fac:'',
+    thaiName:'', engName:'', material:'', ex:'', p2:'',
+    pcsCtn:'', ttCtn:'', ttPcs:'', ctnSize:'', ctnPrice:'',
+    amount:'', delivery, deliveryManual:false,
+    pack:'', remFactory:'', remDesign:'', designRef:'', picture:''
+  };
+}
+function addLine(){ lines.push(newLine()); renderLines(); }
+function addLines5(){ for(let i=0;i<5;i++) lines.push(newLine()); renderLines(); }
+function delLine(idx){ lines.splice(idx,1); renderLines(); recalcAll(); }
+
+function renderLines(){
+  const body=document.getElementById('lineBody');
+  document.getElementById('lineCount').textContent=lines.length+' รายการ';
+  if(!lines.length){
+    body.innerHTML=`<tr><td colspan="24" style="text-align:center;padding:30px;color:var(--muted)">กด "+ เพิ่มแถว" เพื่อเริ่มกรอกรายการสินค้า</td></tr>`;
+    return;
+  }
+  body.innerHTML=lines.map((ln,i)=>`
+  <tr id="row_${i}">
+    <td class="seq-col">${i+1}</td>
+    <td class="td-entry"><input class="ci left code-input" value="${esc(ln.agent)}" placeholder="YW" onchange="setField(${i},'agent',this.value);recalcRow(${i})"></td>
+    <td class="td-entry lookup-wrap">
+      <input class="ci left code-input" id="ci_code_${i}" value="${esc(ln.code)}" placeholder="Code" oninput="onCodeInput(${i},this.value)" onblur="hideLookup(${i})">
+      <div class="lookup-list" id="lk_${i}" style="display:none"></div>
+    </td>
+    <td class="td-entry"><input class="ci code-input" value="${esc(ln.bcPcs)}" placeholder="barcode" onchange="setField(${i},'bcPcs',this.value)"></td>
+    <td class="td-entry"><input class="ci code-input" value="${esc(ln.bcCtn)}" placeholder="barcode" onchange="setField(${i},'bcCtn',this.value)"></td>
+    <td class="td-entry"><input class="ci left code-input" value="${esc(ln.fac)}" placeholder="FAC" onchange="setField(${i},'fac',this.value)"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.thaiName)}" placeholder="ชื่อไทย" onchange="setField(${i},'thaiName',this.value)"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.engName)}" placeholder="English" onchange="setField(${i},'engName',this.value)"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.material)}" placeholder="วัสดุ" onchange="setField(${i},'material',this.value)"></td>
+    <td class="td-manual"><input class="ci" id="ci_ex_${i}" value="${esc(ln.ex)}" placeholder="0.00" type="number" step="0.01" oninput="setField(${i},'ex',this.value);recalcRow(${i})"></td>
+    <td class="td-auto"><input class="ci auto" id="ci_p2_${i}" value="${esc(ln.p2)}" readonly placeholder="—"></td>
+    <td class="td-entry"><input class="ci" id="ci_pcsCtn_${i}" value="${esc(ln.pcsCtn)}" placeholder="0" type="number" oninput="setField(${i},'pcsCtn',this.value);recalcRow(${i})"></td>
+    <td class="td-entry"><input class="ci" id="ci_ttCtn_${i}" value="${esc(ln.ttCtn)}" placeholder="0" type="number" oninput="setField(${i},'ttCtn',this.value);recalcRow(${i})"></td>
+    <td class="td-auto"><input class="ci auto" id="ci_ttPcs_${i}" value="${esc(ln.ttPcs)}" readonly placeholder="—"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.ctnSize)}" placeholder="LxWxH" onchange="setField(${i},'ctnSize',this.value)"></td>
+    <td class="td-auto"><input class="ci auto" id="ci_ctnPrice_${i}" value="${esc(ln.ctnPrice)}" readonly placeholder="—"></td>
+    <td class="td-auto"><input class="ci auto" id="ci_amt_${i}" value="${esc(ln.amount)}" readonly placeholder="—"></td>
+    <td class="td-entry"><input class="ci" id="ci_del_${i}" type="date" value="${esc(ln.delivery)}" onchange="setField(${i},'delivery',this.value);lines[${i}].deliveryManual=true;" style="font-size:11px"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.pack)}" placeholder="pack" onchange="setField(${i},'pack',this.value)"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.remFactory)}" placeholder="remark" onchange="setField(${i},'remFactory',this.value)"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.remDesign)}" placeholder="remark" onchange="setField(${i},'remDesign',this.value)"></td>
+    <td class="td-entry"><input class="ci left" value="${esc(ln.designRef)}" placeholder="ref" onchange="setField(${i},'designRef',this.value)"></td>
+    <td class="td-entry"><input class="ci" value="${esc(ln.picture)}" placeholder="url" onchange="setField(${i},'picture',this.value)"></td>
+    <td class="act-col"><button class="btn btn-danger btn-xs" onclick="delLine(${i})">✕</button></td>
+  </tr>`).join('');
+}
+
+function esc(v){ return (v||'').toString().replace(/"/g,'&quot;'); }
+function setField(idx,field,val){ if(lines[idx]) lines[idx][field]=val; }
+
+// ── AUTO CALC ─────────────────────────────────────────────────────
+function recalcRow(idx){
+  const ln=lines[idx]; if(!ln)return;
+  const ex=parseFloat(ln.ex)||0;
+  const pcsCtn=parseInt(ln.pcsCtn)||0;
+  const ttCtn=parseInt(ln.ttCtn)||0;
+  ln.p2=ex>0?(ex*1.02).toFixed(3):'';
+  ln.ttPcs=pcsCtn&&ttCtn?(pcsCtn*ttCtn):'';
+  ln.amount=ex&&ln.ttPcs?(ex*ln.ttPcs).toFixed(2):'';
+  ln.ctnPrice=ex&&pcsCtn?(ex*pcsCtn).toFixed(2):'';
+  // update DOM
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set(`ci_p2_${idx}`, ln.p2);
+  set(`ci_ttPcs_${idx}`, ln.ttPcs);
+  set(`ci_amt_${idx}`, ln.amount?'$ '+ln.amount:'');
+  set(`ci_ctnPrice_${idx}`, ln.ctnPrice?'$ '+ln.ctnPrice:'');
+  recalcTotals();
+}
+function recalcAll(){ lines.forEach((_,i)=>recalcRow(i)); }
+function recalcTotals(){
+  let ttPcs=0, ttCtn=0, totalAmt=0;
+  lines.forEach(ln=>{
+    ttPcs+=parseInt(ln.ttPcs)||0;
+    ttCtn+=parseInt(ln.ttCtn)||0;
+    totalAmt+=parseFloat(ln.amount)||0;
+  });
+  const validLines=lines.filter(ln=>ln.code||ln.thaiName).length;
+  document.getElementById('ttTtPcs').textContent=ttPcs.toLocaleString();
+  document.getElementById('ttAmount').textContent='$ '+totalAmt.toFixed(2);
+  document.getElementById('sumItems').textContent=validLines;
+  document.getElementById('sumTtPcs').textContent=ttPcs.toLocaleString();
+  document.getElementById('sumTtCtn').textContent=ttCtn.toLocaleString();
+  document.getElementById('sumTotal').textContent='$ '+totalAmt.toFixed(2);
+  const rate=parseFloat(document.getElementById('fRate').value)||0;
+  document.getElementById('sumTHB').textContent=rate?'฿ '+(totalAmt*rate).toLocaleString('th-TH',{maximumFractionDigits:0}):'฿ —';
+}
+
+// ── CODE LOOKUP ───────────────────────────────────────────────────
+let lookupTimeout=null;
+function onCodeInput(idx, val){
+  setField(idx,'code',val.toUpperCase());
+  clearTimeout(lookupTimeout);
+  lookupTimeout=setTimeout(()=>showLookup(idx,val),200);
+}
+function showLookup(idx, q){
+  const lk=document.getElementById(`lk_${idx}`); if(!lk)return;
+  if(!q||q.length<1){ lk.style.display='none'; return; }
+  const brand=document.getElementById('fBrand').value;
+  const matches=items.filter(it=>
+    it.brand===brand &&
+    ((it.code||'').toLowerCase().includes(q.toLowerCase())||
+     (it.thaiName||'').toLowerCase().includes(q.toLowerCase()))
+  ).slice(0,8);
+  if(!matches.length){ lk.style.display='none'; return; }
+  lk.innerHTML=matches.map(it=>`
+    <div class="lookup-item" onmousedown="selectItem(${idx},'${it.id}')">
+      <div>
+        <span class="lk-code">${it.code}</span>
+        <span class="lk-name"> — ${it.thaiName||''}</span>
+        ${it.engName?`<span class="lk-name"> (${it.engName})</span>`:''}
+        <div class="lk-bc">${it.bcPcs||''}${it.bcCtn?' / '+it.bcCtn:''}</div>
+      </div>
+    </div>`).join('');
+  lk.style.display='block';
+}
+function hideLookup(idx){
+  setTimeout(()=>{
+    const lk=document.getElementById(`lk_${idx}`);
+    if(lk) lk.style.display='none';
+  },200);
+}
+function selectItem(idx, itemId){
+  const it=items.find(i=>i.id===itemId); if(!it)return;
+  const ln=lines[idx]; if(!ln)return;
+  // ── Item Info fields ──
+  ln.code      = it.code      || '';
+  ln.bcPcs     = it.bcPcs     || '';
+  ln.bcCtn     = it.bcCtn     || '';
+  ln.thaiName  = it.thaiName  || '';
+  ln.engName   = it.engName   || '';
+  ln.fac       = it.fac       || '';           // FAC auto
+  ln.material  = it.material  || '';           // Material auto
+  ln.picture   = it.picture   || '';
+  // ── Auto-fill Remarks / Packaging from item DB ──
+  if(it.pack)       ln.pack       = it.pack;        // Pack auto
+  if(it.remFactory) ln.remFactory = it.remFactory;  // Rem/Factory auto
+  if(it.remDesign)  ln.remDesign  = it.remDesign;   // Rem/Design auto
+  if(it.designRef)  ln.designRef  = it.designRef;   // Design Ref auto
+  // ── Agent: always sync from PO header ──
+  const headerAgent = document.getElementById('fAgent').value;
+  if(headerAgent) ln.agent = headerAgent;
+  // ── Delivery: keep existing unless not set ──
+  if(!ln.delivery) ln.delivery = getDefaultDelivery()||'';
+  renderLines();
+  recalcRow(idx);
+  const lk=document.getElementById(`lk_${idx}`);
+  if(lk) lk.style.display='none';
+}
+
+// ── SAVE / SUBMIT ─────────────────────────────────────────────────
+function collectPOHeader(){
+  return {
+    id: currentPOId || uid(),
+    poNumber: getPONumber(),
+    agent: document.getElementById('fAgent').value,
+    brand: document.getElementById('fBrand').value,
+    yymm: document.getElementById('fYYMM').value||getDefaultYYMM(),
+    seq: document.getElementById('fSeq').value||'001',
+    poDate: document.getElementById('fPoDate').value,
+    deliveryDate: document.getElementById('fDeliveryDate').value,
+    department: document.getElementById('fDept').value,
+    rate: document.getElementById('fRate').value,
+    commission: document.getElementById('fCommission').value,
+    supplier: document.getElementById('fSupplier').value,
+    supplierCode: document.getElementById('fSupCode').value,
+    supplierContact: document.getElementById('fSupContact').value,
+    payment: document.getElementById('fPayment').value,
+    totalAmount: lines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0).toFixed(2),
+    lineCount: lines.length
+  };
+}
+
+function saveDraft(){
+  const hdr=collectPOHeader();
+  if(!hdr.poNumber) return showToast('⚠ กรุณากรอก Agent + Brand เพื่อสร้าง PO Number','error');
+  if(!lines.length) return showToast('⚠ กรุณาเพิ่ม Line Items','error');
+  hdr.status='Draft'; hdr.createdAt=hdr.createdAt||new Date().toISOString(); hdr.updatedAt=new Date().toISOString();
+  currentPOId=hdr.id;
+  // upsert PO header
+  const idx=pos.findIndex(p=>p.id===hdr.id);
+  if(idx>=0) pos[idx]=hdr; else pos.push(hdr);
+  // upsert line items — remove old lines for this PO then add new
+  poItems=poItems.filter(l=>l.poId!==hdr.id);
+  lines.forEach((ln,i)=>poItems.push({...ln, poId:hdr.id, seq:i+1}));
+  saveAllDB();
+  saveLastSettings();
+  showToast('💾 บันทึก Draft แล้ว: '+hdr.poNumber,'success');
+}
+
+function submitPO(){
+  const hdr=collectPOHeader();
+  if(!hdr.poNumber) return showToast('⚠ กรุณากรอก Agent + Brand','error');
+  if(!hdr.supplier) return showToast('⚠ กรุณาเลือก Supplier','error');
+  if(!hdr.payment) return showToast('⚠ กรุณาเลือก Payment Terms','error');
+  if(!lines.length) return showToast('⚠ กรุณาเพิ่ม Line Items','error');
+  hdr.status='Pending'; hdr.createdAt=hdr.createdAt||new Date().toISOString(); hdr.updatedAt=new Date().toISOString();
+  currentPOId=hdr.id;
+  const idx=pos.findIndex(p=>p.id===hdr.id);
+  if(idx>=0) pos[idx]=hdr; else pos.push(hdr);
+  poItems=poItems.filter(l=>l.poId!==hdr.id);
+  lines.forEach((ln,i)=>poItems.push({...ln, poId:hdr.id, seq:i+1}));
+  saveAllDB();
+  saveLastSettings();
+  showToast('✅ Submit PO แล้ว: '+hdr.poNumber+' → Pending Approval','success');
+}
+
+function clearPO(){
+  if(lines.length&&!confirm('เคลียร์ฟอร์มทั้งหมด?'))return;
+  currentPOId=null;
+  lines=[];
+  // Clear supplier-specific fields
+  ['fSupplier','fPayment','fSupCode','fSupContact','fSupWechat'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('supInfoRow').style.display='none';
+  document.getElementById('poNumDisplay').textContent='—';
+  // Restore last-used settings (agent, brand, yymm, rate, commission, dept) + seq+1
+  loadLastSettings(true);
+  // Set today's date
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('fPoDate').value=today;
+  // Delivery = today + 7 days (auto)
+  const delField=document.getElementById('fDeliveryDate');
+  delField.value=getDefaultDelivery();
+  delField.dataset.auto='1';
+  addLines5();
+  rebuildPONumber();
+  showToast('🆕 เคลียร์ฟอร์มแล้ว — ข้อมูลก่อนหน้าโหลดอัตโนมัติ','success');
+}
+
+// ── PO LIST ───────────────────────────────────────────────────────
+function openPOList(){
+  const cont=document.getElementById('poListContent');
+  if(!pos.length){ cont.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">ยังไม่มี PO ที่บันทึก</div>'; }
+  else{
+    cont.innerHTML=pos.slice().reverse().map(p=>`
+      <div class="po-list-item" onclick="loadPO('${p.id}')">
+        <div>
+          <div class="po-list-num">${p.poNumber||p.id}</div>
+          <div class="po-list-info">${p.supplier||'—'} · ${p.lineCount||0} items · $ ${p.totalAmount||'0.00'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="po-list-status">${p.status||'Draft'}</span>
+          <span style="font-size:11px;color:var(--muted)">${p.updatedAt?new Date(p.updatedAt).toLocaleDateString('th-TH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</span>
+        </div>
+      </div>`).join('');
+  }
+  document.getElementById('poListOverlay').classList.add('show');
+}
+function loadPO(id){
+  const hdr=pos.find(p=>p.id===id); if(!hdr)return;
+  currentPOId=id;
+  document.getElementById('fAgent').value=hdr.agent||'';
+  document.getElementById('fBrand').value=hdr.brand||'MI';
+  document.getElementById('fYYMM').value=hdr.yymm||'';
+  document.getElementById('fSeq').value=hdr.seq||'';
+  document.getElementById('fPoDate').value=hdr.poDate||'';
+  document.getElementById('fDeliveryDate').value=hdr.deliveryDate||'';
+  document.getElementById('fDept').value=hdr.department||'';
+  document.getElementById('fRate').value=hdr.rate||'';
+  document.getElementById('fCommission').value=hdr.commission||'';
+  document.getElementById('fSupplier').value=hdr.supplier||'';
+  document.getElementById('fPayment').value=hdr.payment||'';
+  onSupplierChange();
+  rebuildPONumber();
+  // load lines
+  lines=poItems.filter(l=>l.poId===id).sort((a,b)=>a.seq-b.seq).map(l=>({...l}));
+  if(!lines.length) lines=[newLine()];
+  renderLines(); recalcAll();
+  document.getElementById('poListOverlay').classList.remove('show');
+  showToast('📂 โหลด PO: '+hdr.poNumber,'success');
+}
+function clearAllPOs(){
+  if(!confirm('ลบ PO ทั้งหมด?'))return;
+  pos=[]; poItems=[];
+  saveAllDB();
+  document.getElementById('poListOverlay').classList.remove('show');
+  showToast('🗑️ ลบ PO ทั้งหมดแล้ว','success');
+}
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast show ${type}`;
+  setTimeout(()=>t.className='toast',3000);
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────
+loadDB();
+populateSuppliers();
+
+// Set default date
+const today=new Date().toISOString().slice(0,10);
+document.getElementById('fPoDate').value=today;
+document.getElementById('fYYMM').value=getDefaultYYMM();
+
+// Load last-used settings (agent, brand, yymm, rate, etc.) — no seq increment on first load
+loadLastSettings(false);
+
+// Delivery = PO Date + 7 (auto-set header)
+const _delField=document.getElementById('fDeliveryDate');
+_delField.value=getDefaultDelivery();
+_delField.dataset.auto='1';
+
+// Listen: PO Date changes → update Delivery + all line deliveries
+document.getElementById('fPoDate').addEventListener('change', function(){
+  const del=getDefaultDelivery();
+  const df=document.getElementById('fDeliveryDate');
+  if(!df.value || df.dataset.auto==='1'){
+    df.value=del; df.dataset.auto='1';
+  }
+  // Update lines that haven't been manually edited
+  lines.forEach((ln,i)=>{
+    if(!ln.deliveryManual){
+      ln.delivery=del;
+      const el=document.getElementById(`ci_del_${i}`);
+      if(el) el.value=del;
+    }
+  });
+});
+// If user manually edits header delivery, stop auto-updating it
+document.getElementById('fDeliveryDate').addEventListener('change', function(){
+  this.dataset.auto='0';
+});
+
+// Listen: Agent changes → sync agent to all lines
+document.getElementById('fAgent').addEventListener('change', function(){
+  const agent=this.value;
+  lines.forEach((ln,i)=>{
+    if(!ln.code){ // only unfilled rows
+      ln.agent=agent;
+      const el=document.querySelector(`#row_${i} .ci.left.code-input`);
+      // re-render to sync
+    }
+  });
+  rebuildPONumber();
+});
+
+// start with 5 empty lines
+addLines5();
+rebuildPONumber();
+document.getElementById('fRate').addEventListener('input', recalcTotals);
+</script>
+</body>
+</html>
