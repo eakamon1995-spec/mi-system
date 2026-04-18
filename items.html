@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MI System — Barcode Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #1a1d27; --bg3: #23273a;
+    --border: #2e3347; --text: #e8eaf0; --muted: #8b90a8;
+    --accent: #4f7cff; --mi: #4f7cff; --km: #a855f7;
+    --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+  }
+  body { background:var(--bg); color:var(--text); font-family:'Sarabun','Segoe UI',sans-serif; font-size:14px; min-height:100vh; }
+
+  /* HEADER */
+  .header { background:var(--bg2); border-bottom:1px solid var(--border); padding:0 24px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:100; }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .logo { font-size:18px; font-weight:700; color:var(--accent); letter-spacing:-.5px; }
+  .logo span { color:var(--muted); font-weight:400; }
+  .back-link { color:var(--muted); text-decoration:none; font-size:13px; display:flex; align-items:center; gap:4px; padding:4px 8px; border-radius:6px; transition:background .15s; }
+  .back-link:hover { background:var(--bg3); color:var(--text); }
+  .header-right { display:flex; align-items:center; gap:8px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:13px; font-family:inherit; border:none; cursor:pointer; transition:all .15s; font-weight:500; text-decoration:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#3d6ae0; }
+  .btn-secondary { background:var(--bg3); color:var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover { background:var(--border); }
+  .btn-danger { background:rgba(239,68,68,.15); color:var(--red); border:1px solid rgba(239,68,68,.3); }
+  .btn-danger:hover { background:rgba(239,68,68,.25); }
+  .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
+
+  /* LAYOUT */
+  .page { max-width:1400px; margin:0 auto; padding:24px; }
+
+  /* PATTERN GUIDE */
+  .pattern-guide { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px 20px; margin-bottom:20px; }
+  .pattern-guide h3 { font-size:12px; color:var(--muted); margin-bottom:12px; letter-spacing:.5px; text-transform:uppercase; }
+  .patterns { display:flex; gap:10px; flex-wrap:wrap; }
+  .pattern-card { flex:1; min-width:155px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:11px 14px; }
+  .pattern-card .brand { font-size:11px; font-weight:700; letter-spacing:.5px; margin-bottom:4px; }
+  .pattern-card.mi .brand { color:var(--mi); }
+  .pattern-card.km .brand { color:var(--km); }
+  .pattern-card .pcode { font-family:'Courier New',monospace; font-size:14px; font-weight:700; margin-bottom:2px; }
+  .pattern-card .desc { font-size:11px; color:var(--muted); }
+
+  /* STATS */
+  .stats-row { display:flex; gap:12px; margin-bottom:20px; }
+  .stat-card { flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:12px; }
+  .stat-icon { font-size:22px; }
+  .stat-label { font-size:11px; color:var(--muted); margin-bottom:2px; }
+  .stat-value { font-size:22px; font-weight:700; }
+  .stat-card.mi-card .stat-value { color:var(--mi); }
+  .stat-card.km-card .stat-value { color:var(--km); }
+
+  /* TABS */
+  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+  .tab { padding:10px 20px; border:none; background:none; color:var(--muted); cursor:pointer; font-family:inherit; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; display:flex; align-items:center; gap:6px; }
+  .tab.active-mi { color:var(--mi); border-bottom-color:var(--mi); }
+  .tab.active-km { color:var(--km); border-bottom-color:var(--km); }
+  .tab:hover:not(.active-mi):not(.active-km) { color:var(--text); }
+  .tab-badge { font-size:11px; padding:1px 7px; border-radius:10px; font-weight:600; }
+  .tab-mi .tab-badge { background:rgba(79,124,255,.15); color:var(--mi); }
+  .tab-km .tab-badge { background:rgba(168,85,247,.15); color:var(--km); }
+
+  /* TOOLBAR */
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .search-box { flex:1; min-width:220px; max-width:320px; display:flex; align-items:center; gap:8px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:7px 12px; }
+  .search-box input { background:none; border:none; outline:none; color:var(--text); font-size:13px; font-family:inherit; width:100%; }
+  .filter-select { background:var(--bg2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; font-family:inherit; cursor:pointer; }
+  .spacer { flex:1; }
+
+  /* TABLE */
+  .table-wrap { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  thead { background:var(--bg3); }
+  th { padding:11px 12px; text-align:left; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.3px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  td { padding:10px 12px; font-size:13px; border-bottom:1px solid rgba(46,51,71,.5); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,.02); }
+  .item-pic { width:44px; height:44px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); object-fit:cover; display:block; margin:auto; }
+  .no-pic { width:44px; height:44px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:18px; margin:auto; color:var(--muted); }
+  .code-chip { font-family:'Courier New',monospace; font-size:12px; font-weight:700; padding:3px 8px; border-radius:5px; display:inline-block; }
+  .chip-mi { background:rgba(79,124,255,.15); color:var(--mi); }
+  .chip-km { background:rgba(168,85,247,.15); color:var(--km); }
+  .bc-label { font-size:10px; color:var(--muted); opacity:.6; margin-bottom:1px; }
+  .bc-val { font-size:11px; font-weight:600; font-family:'Courier New',monospace; letter-spacing:.5px; }
+  .sup-badge { font-size:11px; padding:2px 8px; border-radius:5px; background:var(--bg3); border:1px solid var(--border); }
+  .row-num { font-size:12px; color:var(--muted); font-weight:600; }
+  .name-th { font-weight:500; }
+  .name-en { font-size:11px; color:var(--muted); }
+
+  /* EMPTY */
+  .empty-state { padding:60px 20px; text-align:center; color:var(--muted); }
+  .empty-state .icon { font-size:40px; margin-bottom:12px; }
+  .empty-state .hint { font-size:12px; margin-top:6px; opacity:.7; }
+
+  /* PAGINATION */
+  .pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); }
+  .page-btns { display:flex; gap:4px; }
+  .page-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:5px 10px; cursor:pointer; font-size:12px; }
+  .page-btn:hover { background:var(--border); }
+  .page-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:28px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; }
+  .modal-title { font-size:16px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  .form-group.full { grid-column:span 2; }
+  .form-group label { font-size:12px; color:var(--muted); font-weight:500; }
+  .form-group input, .form-group select { background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:13px; font-family:inherit; outline:none; transition:border-color .15s; }
+  .form-group input:focus, .form-group select:focus { border-color:var(--accent); }
+  .hint-text { font-size:11px; color:var(--muted); margin-top:2px; }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:22px; }
+
+  /* BARCODE PREVIEW */
+  .bc-preview { background:#fff; border-radius:8px; padding:10px 16px; text-align:center; margin-top:8px; display:none; }
+  .bc-preview svg { max-width:100%; }
+
+  /* BARCODE MODAL */
+  .bc-modal-item { width:100%; background:#fff; border-radius:10px; padding:14px; text-align:center; margin-bottom:12px; }
+  .bc-type-label { font-size:11px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; color:#444; }
+
+  /* CHANGE CODE */
+  .change-btn { font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25); color:var(--amber); cursor:pointer; white-space:nowrap; font-family:inherit; }
+  .change-btn:hover { background:rgba(245,158,11,.2); }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:12px 18px; font-size:13px; z-index:999; transition:all .3s; transform:translateY(80px); opacity:0; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--green); }
+  .toast.error { border-color:var(--red); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">MI<span> System</span></span>
+    <a href="index.html" class="back-link">← หน้าหลัก</a>
+  </div>
+  <div class="header-right">
+    <a href="po-create.html" class="btn btn-secondary btn-sm">📝 สร้าง PO</a>
+    <a href="suppliers.html" class="btn btn-secondary btn-sm">🏢 Suppliers</a>
+    <a href="approval.html" class="btn btn-secondary btn-sm">✅ Approval</a>
+    <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ เพิ่มสินค้า</button>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- PATTERN GUIDE -->
+  <div class="pattern-guide">
+    <h3>📊 Barcode Pattern Guide — EAN-13 (12 digits input)</h3>
+    <div class="patterns">
+      <div class="pattern-card mi"><div class="brand">🔵 MI — PCS</div><div class="pcode">691351xxxxxx</div><div class="desc">ชิ้น · 12 หลัก</div></div>
+      <div class="pattern-card mi"><div class="brand">🔵 MI — CTN</div><div class="pcode">551351xxxxxx</div><div class="desc">กล่อง · 12 หลัก</div></div>
+      <div class="pattern-card km"><div class="brand">🟣 KOMON — PCS</div><div class="pcode">591351xxxxxx</div><div class="desc">ชิ้น · 12 หลัก</div></div>
+      <div class="pattern-card km"><div class="brand">🟣 KOMON — CTN</div><div class="pcode">571351xxxxxx</div><div class="desc">กล่อง · 12 หลัก</div></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card mi-card"><div class="stat-icon">🔵</div><div><div class="stat-label">MI Items</div><div class="stat-value" id="statMI">0</div></div></div>
+    <div class="stat-card km-card"><div class="stat-icon">🟣</div><div><div class="stat-label">KOMON Items</div><div class="stat-value" id="statKM">0</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📦</div><div><div class="stat-label">รวมทั้งหมด</div><div class="stat-value" id="statTotal">0</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🏭</div><div><div class="stat-label">Suppliers</div><div class="stat-value" id="statSup">0</div></div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab tab-mi active-mi" id="tab-mi" onclick="switchTab('MI')">🔵 MI <span class="tab-badge" id="badge-mi">0</span></button>
+    <button class="tab tab-km" id="tab-km" onclick="switchTab('KM')">🟣 KOMON <span class="tab-badge" id="badge-km">0</span></button>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="searchInput" placeholder="ค้นหา Code / ชื่อ / Barcode..." oninput="renderTable()">
+    </div>
+    <select class="filter-select" id="filterSup" onchange="renderTable()">
+      <option value="">ทุก Supplier</option>
+    </select>
+    <div class="spacer"></div>
+    <label for="csvFile" class="btn btn-secondary btn-sm" style="cursor:pointer">📥 Import CSV</label>
+    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(this)">
+    <button class="btn btn-secondary btn-sm" onclick="exportCSV()">📤 Export</button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:58px;text-align:center">รูป</th>
+          <th style="width:46px;text-align:center">#</th>
+          <th style="width:88px">Code</th>
+          <th>ชื่อสินค้า</th>
+          <th style="width:128px">Barcode PCS</th>
+          <th style="width:128px">Barcode CTN</th>
+          <th style="width:110px">Supplier</th>
+          <th style="width:110px;text-align:center">Action</th>
+        </tr>
+      </thead>
+      <tbody id="tBody"></tbody>
+    </table>
+    <div class="pagination" id="pagination" style="display:none">
+      <span id="pageInfo"></span>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">➕ เพิ่มสินค้าใหม่</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Brand *</label>
+        <select id="fBrand" onchange="onBrandChange()">
+          <option value="MI">🔵 MI</option>
+          <option value="KM">🟣 KOMON</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Product Code *</label>
+        <input type="text" id="fCode" placeholder="เช่น A001" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="form-group full">
+        <label>ชื่อภาษาไทย *</label>
+        <input type="text" id="fThaiName" placeholder="ชื่อสินค้าภาษาไทย">
+      </div>
+      <div class="form-group full">
+        <label>ชื่อภาษาอังกฤษ</label>
+        <input type="text" id="fEngName" placeholder="English Product Name">
+      </div>
+      <div class="form-group">
+        <label>Barcode PCS (12 หลัก)</label>
+        <input type="text" id="fBcPcs" placeholder="auto-gen หรือกรอกเอง" maxlength="12" oninput="validateBc('fBcPcs');previewBc()">
+        <span class="hint-text" id="hintPcs"></span>
+      </div>
+      <div class="form-group">
+        <label>Barcode CTN (12 หลัก)</label>
+        <input type="text" id="fBcCtn" placeholder="auto-gen หรือกรอกเอง" maxlength="12" oninput="validateBc('fBcCtn')">
+        <span class="hint-text" id="hintCtn"></span>
+      </div>
+      <div class="form-group full">
+        <button type="button" class="btn btn-secondary btn-sm" style="width:fit-content" onclick="autoGen()">⚡ Auto-Generate Barcodes</button>
+        <div class="bc-preview" id="bcPreview"><svg id="bcSvg"></svg></div>
+      </div>
+      <div class="form-group">
+        <label>Supplier</label>
+        <select id="fSupplier"><option value="">— ไม่ระบุ —</option></select>
+      </div>
+      <div class="form-group">
+        <label>FAC Code</label>
+        <input type="text" id="fFac" placeholder="รหัส Factory">
+      </div>
+      <div class="form-group">
+        <label>Material / วัสดุ</label>
+        <input type="text" id="fMaterial" placeholder="วัสดุ">
+      </div>
+      <div class="form-group">
+        <label>Pack</label>
+        <input type="text" id="fPack" placeholder="บรรจุภัณฑ์">
+      </div>
+      <div class="form-group">
+        <label>Rem/Factory</label>
+        <input type="text" id="fRemFactory" placeholder="หมายเหตุ Factory">
+      </div>
+      <div class="form-group">
+        <label>Rem/Design</label>
+        <input type="text" id="fRemDesign" placeholder="หมายเหตุ Design">
+      </div>
+      <div class="form-group">
+        <label>Design Ref</label>
+        <input type="text" id="fDesignRef" placeholder="อ้างอิง Design">
+      </div>
+      <div class="form-group">
+        <label>รูปภาพ URL</label>
+        <input type="text" id="fPicture" placeholder="https://...">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveItem()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- BARCODE VIEW MODAL -->
+<div class="modal-overlay" id="bcModalOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="bcModalTitle">📊 Barcode Viewer</div>
+    <div id="bcModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="document.getElementById('bcModalOverlay').classList.remove('show')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE CODE MODAL -->
+<div class="modal-overlay" id="ccOverlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">🔄 เปลี่ยน Product Code</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px">PO ที่สร้างไปแล้วจะยังคงใช้ Code เดิม ระบบจะอัปเดตเฉพาะ Barcode Library</p>
+    <div class="form-group"><label>Code เดิม</label><input type="text" id="ccOld" readonly style="opacity:.5"></div>
+    <div class="form-group" style="margin-top:12px"><label>Code ใหม่ *</label><input type="text" id="ccNew" placeholder="กรอก Code ใหม่" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="document.getElementById('ccOverlay').classList.remove('show')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="confirmCC()">✅ ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DB_ITEMS='mi_db_items', DB_SUPPLIERS='mi_db_suppliers', PG=25;
+let items=[], suppliers=[], tab='MI', page=1, editId=null, ccId=null;
+
+function loadDB(){
+  try{items=JSON.parse(localStorage.getItem(DB_ITEMS))||[];}catch{items=[];}
+  try{suppliers=JSON.parse(localStorage.getItem(DB_SUPPLIERS))||[];}catch{suppliers=[];}
+}
+function saveDB(){ localStorage.setItem(DB_ITEMS,JSON.stringify(items)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function getFiltered(){
+  const q=document.getElementById('searchInput').value.toLowerCase().trim();
+  const sup=document.getElementById('filterSup').value;
+  return items.filter(it=>{
+    if(it.brand!==tab) return false;
+    if(sup && it.supplier!==sup) return false;
+    if(q) return (it.code||'').toLowerCase().includes(q)||(it.thaiName||'').toLowerCase().includes(q)||(it.engName||'').toLowerCase().includes(q)||(it.bcPcs||'').includes(q)||(it.bcCtn||'').includes(q);
+    return true;
+  });
+}
+
+function updateStats(){
+  const mi=items.filter(i=>i.brand==='MI').length;
+  const km=items.filter(i=>i.brand==='KM').length;
+  const sups=new Set(items.map(i=>i.supplier).filter(Boolean)).size;
+  document.getElementById('statMI').textContent=mi;
+  document.getElementById('statKM').textContent=km;
+  document.getElementById('statTotal').textContent=items.length;
+  document.getElementById('statSup').textContent=sups;
+  document.getElementById('badge-mi').textContent=mi;
+  document.getElementById('badge-km').textContent=km;
+}
+
+function populateFilters(){
+  const sel=document.getElementById('filterSup'), cur=sel.value;
+  sel.innerHTML='<option value="">ทุก Supplier</option>';
+  suppliers.forEach(s=>{const o=document.createElement('option');o.value=s.code||s.name;o.textContent=s.name||s.code;sel.appendChild(o);});
+  sel.value=cur;
+  const fs=document.getElementById('fSupplier'), fc=fs.value;
+  fs.innerHTML='<option value="">— ไม่ระบุ —</option>';
+  suppliers.forEach(s=>{const o=document.createElement('option');o.value=s.code||s.name;o.textContent=s.name||s.code;fs.appendChild(o);});
+  fs.value=fc;
+}
+
+function switchTab(brand){
+  tab=brand; page=1;
+  document.getElementById('tab-mi').className='tab tab-mi'+(brand==='MI'?' active-mi':'');
+  document.getElementById('tab-km').className='tab tab-km'+(brand==='KM'?' active-km':'');
+  renderTable();
+}
+
+function renderTable(){ page=1; renderPage(); }
+function renderPage(){
+  const data=getFiltered(), show=data.slice((page-1)*PG, page*PG);
+  const body=document.getElementById('tBody');
+  const chipClass=tab==='MI'?'chip-mi':'chip-km';
+  if(!data.length){
+    body.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="icon">📦</div><p>ไม่พบสินค้า</p><div class="hint">กด "+ เพิ่มสินค้า" หรือ Import CSV</div></div></td></tr>`;
+    document.getElementById('pagination').style.display='none'; return;
+  }
+  body.innerHTML=show.map((it,i)=>{
+    const n=(page-1)*PG+i+1;
+    const pic=it.picture?`<img src="${it.picture}" class="item-pic" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'no-pic',textContent:'📷'}))">`:
+      `<div class="no-pic">📷</div>`;
+    return `<tr>
+      <td style="text-align:center">${pic}</td>
+      <td style="text-align:center"><span class="row-num">${n}</span></td>
+      <td><span class="code-chip ${chipClass}">${it.code||'—'}</span></td>
+      <td><div class="name-th">${it.thaiName||'—'}</div>${it.engName?`<div class="name-en">${it.engName}</div>`:''}</td>
+      <td>${it.bcPcs?`<div class="bc-label">PCS</div><div class="bc-val">${it.bcPcs}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${it.bcCtn?`<div class="bc-label">CTN</div><div class="bc-val">${it.bcCtn}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${it.supplier?`<span class="sup-badge">${it.supplier}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:center">
+        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+          ${it.bcPcs||it.bcCtn?`<button class="btn btn-secondary btn-sm" onclick="viewBc('${it.id}')">📊</button>`:''}
+          <button class="btn btn-secondary btn-sm" onclick="openEdit('${it.id}')">✏️</button>
+          <button class="change-btn" onclick="openCC('${it.id}')">🔄 Code</button>
+          <button class="btn btn-danger btn-sm" onclick="delItem('${it.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  const total=data.length, pages=Math.ceil(total/PG);
+  const s=(page-1)*PG+1, e=Math.min(page*PG,total);
+  document.getElementById('pageInfo').textContent=`แสดง ${s}–${e} จาก ${total} รายการ`;
+  const pb=document.getElementById('pageBtns');
+  pb.innerHTML=Array.from({length:pages},(_,i)=>`<button class="page-btn${i+1===page?' active':''}" onclick="goPage(${i+1})">${i+1}</button>`).join('');
+  document.getElementById('pagination').style.display=total>PG?'flex':'none';
+}
+function goPage(p){ page=p; renderPage(); }
+
+// ── BARCODE HELPERS ───
+function pfx(brand,type){ return brand==='MI'?(type==='pcs'?'691351':'551351'):(type==='pcs'?'591351':'571351'); }
+function validateBc(id){
+  const v=document.getElementById(id).value;
+  const hint=document.getElementById(id==='fBcPcs'?'hintPcs':'hintCtn');
+  if(!v){hint.textContent='';return true;}
+  if(!/^\d{12}$/.test(v)){hint.style.color='var(--red)';hint.textContent='⚠ ต้องเป็นตัวเลข 12 หลัก';return false;}
+  hint.style.color='var(--green)';hint.textContent='✓ ถูกต้อง';return true;
+}
+function autoGen(){
+  const brand=document.getElementById('fBrand').value;
+  let max=0;
+  items.filter(i=>i.brand===brand).forEach(it=>{
+    if(it.bcPcs&&it.bcPcs.startsWith(pfx(brand,'pcs'))){
+      const n=parseInt(it.bcPcs.slice(6))||0; if(n>max)max=n;
+    }
+  });
+  const seq=String(max+1).padStart(6,'0');
+  document.getElementById('fBcPcs').value=pfx(brand,'pcs')+seq;
+  document.getElementById('fBcCtn').value=pfx(brand,'ctn')+seq;
+  validateBc('fBcPcs'); validateBc('fBcCtn'); previewBc();
+  showToast('⚡ สร้าง Barcode อัตโนมัติแล้ว','success');
+}
+function previewBc(){
+  const v=document.getElementById('fBcPcs').value;
+  const el=document.getElementById('bcPreview');
+  if(!v||!/^\d{12}$/.test(v)){el.style.display='none';return;}
+  try{el.style.display='block';JsBarcode('#bcSvg',v,{format:'EAN13',displayValue:true,fontSize:12,height:50,margin:4,lineColor:'#000',background:'#fff'});}
+  catch{el.style.display='none';}
+}
+function onBrandChange(){ document.getElementById('fBcPcs').value=''; document.getElementById('fBcCtn').value=''; document.getElementById('hintPcs').textContent=''; document.getElementById('hintCtn').textContent=''; document.getElementById('bcPreview').style.display='none'; }
+
+// ── MODAL ───
+function openAddModal(){
+  editId=null;
+  document.getElementById('modalTitle').textContent='➕ เพิ่มสินค้าใหม่';
+  document.getElementById('saveBtn').textContent='💾 บันทึก';
+  clearForm();
+  document.getElementById('fBrand').value=tab;
+  populateFilters();
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function openEdit(id){
+  const it=items.find(i=>i.id===id); if(!it)return;
+  editId=id;
+  document.getElementById('modalTitle').textContent='✏️ แก้ไขสินค้า';
+  document.getElementById('saveBtn').textContent='💾 อัปเดต';
+  populateFilters();
+  document.getElementById('fBrand').value=it.brand;
+  document.getElementById('fCode').value=it.code||'';
+  document.getElementById('fThaiName').value=it.thaiName||'';
+  document.getElementById('fEngName').value=it.engName||'';
+  document.getElementById('fBcPcs').value=it.bcPcs||'';
+  document.getElementById('fBcCtn').value=it.bcCtn||'';
+  document.getElementById('fSupplier').value=it.supplier||'';
+  document.getElementById('fFac').value=it.fac||'';
+  document.getElementById('fMaterial').value=it.material||'';
+  document.getElementById('fPack').value=it.pack||'';
+  document.getElementById('fRemFactory').value=it.remFactory||'';
+  document.getElementById('fRemDesign').value=it.remDesign||'';
+  document.getElementById('fDesignRef').value=it.designRef||'';
+  document.getElementById('fPicture').value=it.picture||'';
+  document.getElementById('bcPreview').style.display='none';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+function clearForm(){
+  ['fCode','fThaiName','fEngName','fBcPcs','fBcCtn','fFac','fMaterial','fPack','fRemFactory','fRemDesign','fDesignRef','fPicture'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fSupplier').value='';
+  document.getElementById('hintPcs').textContent=''; document.getElementById('hintCtn').textContent='';
+  document.getElementById('bcPreview').style.display='none';
+}
+
+function saveItem(){
+  const brand=document.getElementById('fBrand').value;
+  const code=document.getElementById('fCode').value.trim().toUpperCase();
+  const thaiName=document.getElementById('fThaiName').value.trim();
+  const engName=document.getElementById('fEngName').value.trim();
+  const bcPcs=document.getElementById('fBcPcs').value.trim();
+  const bcCtn=document.getElementById('fBcCtn').value.trim();
+  const supplier=document.getElementById('fSupplier').value;
+  const fac=document.getElementById('fFac').value.trim();
+  const material=document.getElementById('fMaterial').value.trim();
+  const pack=document.getElementById('fPack').value.trim();
+  const remFactory=document.getElementById('fRemFactory').value.trim();
+  const remDesign=document.getElementById('fRemDesign').value.trim();
+  const designRef=document.getElementById('fDesignRef').value.trim();
+  const picture=document.getElementById('fPicture').value.trim();
+  if(!code) return showToast('⚠ กรุณากรอก Product Code','error');
+  if(!thaiName) return showToast('⚠ กรุณากรอกชื่อภาษาไทย','error');
+  if(bcPcs&&!validateBc('fBcPcs')) return showToast('⚠ Barcode PCS ไม่ถูกต้อง','error');
+  if(bcCtn&&!validateBc('fBcCtn')) return showToast('⚠ Barcode CTN ไม่ถูกต้อง','error');
+  const dup=items.find(i=>i.brand===brand&&i.code===code&&i.id!==editId);
+  if(dup) return showToast(`⚠ Code "${code}" มีอยู่แล้วใน ${brand}`,'error');
+  if(editId){
+    const idx=items.findIndex(i=>i.id===editId);
+    if(idx>=0) items[idx]={...items[idx],brand,code,thaiName,engName,bcPcs,bcCtn,supplier,fac,material,pack,remFactory,remDesign,designRef,picture,updatedAt:new Date().toISOString()};
+    showToast('✅ อัปเดตแล้ว','success');
+  }else{
+    items.push({id:uid(),brand,code,thaiName,engName,bcPcs,bcCtn,supplier,fac,material,pack,remFactory,remDesign,designRef,picture,createdAt:new Date().toISOString()});
+    showToast('✅ เพิ่มสินค้าแล้ว','success');
+  }
+  saveDB(); closeModal(); updateStats(); renderTable();
+}
+
+function delItem(id){
+  const it=items.find(i=>i.id===id); if(!it)return;
+  if(!confirm(`ลบ "${it.code} — ${it.thaiName}" ออก?`)) return;
+  items=items.filter(i=>i.id!==id);
+  saveDB(); updateStats(); renderTable();
+  showToast('🗑️ ลบแล้ว','success');
+}
+
+// ── BARCODE VIEW ───
+function viewBc(id){
+  const it=items.find(i=>i.id===id); if(!it)return;
+  document.getElementById('bcModalTitle').textContent=`📊 ${it.code} — ${it.thaiName}`;
+  const cont=document.getElementById('bcModalContent');
+  cont.innerHTML='';
+  const make=(val,lbl)=>{
+    if(!val)return;
+    const d=document.createElement('div');
+    d.className='bc-modal-item';
+    d.innerHTML=`<div class="bc-type-label">${lbl}</div><svg id="bsv_${lbl}"></svg><div style="font-family:monospace;font-size:13px;margin-top:6px;color:#555">${val}</div>`;
+    cont.appendChild(d);
+  };
+  if(it.bcPcs) make(it.bcPcs,'PCS');
+  if(it.bcCtn) make(it.bcCtn,'CTN');
+  document.getElementById('bcModalOverlay').classList.add('show');
+  setTimeout(()=>{
+    if(it.bcPcs) try{JsBarcode('#bsv_PCS',it.bcPcs,{format:'EAN13',displayValue:true,fontSize:12,height:60,margin:4,lineColor:'#000',background:'#fff'});}catch{}
+    if(it.bcCtn) try{JsBarcode('#bsv_CTN',it.bcCtn,{format:'EAN13',displayValue:true,fontSize:12,height:60,margin:4,lineColor:'#000',background:'#fff'});}catch{}
+  },50);
+}
+
+// ── CHANGE CODE ───
+function openCC(id){
+  ccId=id; const it=items.find(i=>i.id===id); if(!it)return;
+  document.getElementById('ccOld').value=it.code;
+  document.getElementById('ccNew').value='';
+  document.getElementById('ccOverlay').classList.add('show');
+}
+function confirmCC(){
+  const nc=document.getElementById('ccNew').value.trim().toUpperCase();
+  if(!nc) return showToast('⚠ กรุณากรอก Code ใหม่','error');
+  const it=items.find(i=>i.id===ccId); if(!it)return;
+  const dup=items.find(i=>i.brand===it.brand&&i.code===nc&&i.id!==ccId);
+  if(dup) return showToast(`⚠ Code "${nc}" มีอยู่แล้ว`,'error');
+  it.code=nc; it.updatedAt=new Date().toISOString();
+  saveDB(); renderTable();
+  document.getElementById('ccOverlay').classList.remove('show');
+  showToast('✅ เปลี่ยน Code แล้ว','success');
+}
+
+// ── CSV ───
+function importCSV(input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(lines.length<2) return showToast('⚠ ไฟล์ว่างเปล่า','error');
+    const hdr=lines[0].split(',').map(h=>h.trim().toLowerCase());
+    let added=0,skipped=0;
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      const g=k=>cols[hdr.indexOf(k)]||'';
+      const brand=(g('brand')||'MI').toUpperCase();
+      const code=(g('code')||'').toUpperCase();
+      if(!code){skipped++;continue;}
+      if(items.find(it=>it.brand===brand&&it.code===code)){skipped++;continue;}
+      items.push({id:uid(),brand,code,
+        thaiName:g('thainame')||g('thai_name')||g('name')||'',
+        engName:g('engname')||g('eng_name')||'',
+        bcPcs:g('bcpcs')||g('bc_pcs')||'',
+        bcCtn:g('bcctn')||g('bc_ctn')||'',
+        supplier:g('supplier')||'',fac:g('fac')||'',
+        material:g('material')||'',
+        pack:g('pack')||'',remFactory:g('remfactory')||g('rem_factory')||'',
+        remDesign:g('remdesign')||g('rem_design')||'',
+        designRef:g('designref')||g('design_ref')||'',
+        picture:g('picture')||'',
+        createdAt:new Date().toISOString()
+      });
+      added++;
+    }
+    saveDB(); updateStats(); renderTable();
+    showToast(`✅ Import ${added} รายการ (ข้าม ${skipped})`,'success');
+  };
+  reader.readAsText(file,'UTF-8');
+  input.value='';
+}
+function exportCSV(){
+  const data=getFiltered();
+  if(!data.length) return showToast('⚠ ไม่มีข้อมูล','error');
+  const hdr='Brand,Code,ThaiName,EngName,BcPcs,BcCtn,Supplier,Fac,Material,Pack,RemFactory,RemDesign,DesignRef,Picture';
+  const rows=data.map(it=>[it.brand,it.code,it.thaiName,it.engName,it.bcPcs,it.bcCtn,it.supplier,it.fac,it.material,it.pack,it.remFactory,it.remDesign,it.designRef,it.picture].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const blob=new Blob(['\uFEFF'+hdr+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`mi_barcode_${tab}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast('📤 Export แล้ว','success');
+}
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast show ${type}`;
+  setTimeout(()=>t.className='toast',2800);
+}
+
+// BOOT
+loadDB(); populateFilters(); updateStats(); renderTable();
+</script>
+</body>
+</html>
