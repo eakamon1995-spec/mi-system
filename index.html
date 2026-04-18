@@ -2307,16 +2307,15 @@ async function apiCall(action, payload = {}) {
   dbg(`apiCall: action=${action} token=${erpToken?'yes':'null'}`);
   const body = { action, token: erpToken, payload };
 
+  // Google Apps Script: ส่ง GET + ?data= (CORS รองรับ GET redirect ได้, POST ไม่ได้)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
   try {
-    // Google Apps Script: ส่ง POST แบบ text/plain
-    // (ไม่ trigger CORS preflight และ GAS รับ e.postData.contents ได้)
-    const res = await fetch(erpApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(body),
-      redirect: 'follow',
-      mode: 'cors',
-    });
+    const res = await fetch(
+      erpApiUrl + '?data=' + encodeURIComponent(JSON.stringify(body)) + '&t=' + Date.now(),
+      { signal: controller.signal, redirect: 'follow' }
+    );
+    clearTimeout(timeoutId);
     const text = await res.text();
     dbg(`response ${res.status}: ${text.slice(0,100)}`);
     try {
@@ -2326,8 +2325,10 @@ async function apiCall(action, payload = {}) {
       return { ok: false, error: 'Invalid response: ' + text.slice(0,100) };
     }
   } catch (e) {
+    clearTimeout(timeoutId);
     dbg(`fetch error: ${e.message}`, 'err');
-    try{await new Promise(r=>setTimeout(r,3000));const _r=await fetch(erpApiUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body),redirect:'follow',mode:'cors'});const _t=await _r.text();try{return JSON.parse(_t);}catch{return{ok:false,error:'Invalid JSON on retry'};}}catch(_e){return{ok:false,error:'Network error: '+_e.message};}
+    if (e.name === 'AbortError') return { ok: false, error: 'timeout' };
+    return { ok: false, error: 'Network error: ' + e.message };
   }
 }
 
@@ -2442,12 +2443,8 @@ function updateSidebarPanel(pageName) {
   pageEl.textContent = '📍 ' + pg;
   // Record activity to AuditLog via API
   try {
-    const token = localStorage.getItem('mi_token');
-    if(token) {
-      const url = localStorage.getItem('mi_erpUrl');
-      fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({action:'logActivity',token,payload:{user:u.username,name:u.name,role:u.role,page:pg,ts:Date.now()}})
-      }).catch(()=>{});
+    if(erpToken && erpApiUrl) {
+      apiCall('logActivity', {user:u.username,name:u.name,role:u.role,page:pg,ts:Date.now()}).catch(()=>{});
     }
   } catch(e){}
   // Show online users panel for superadmin
@@ -2457,12 +2454,8 @@ function updateSidebarPanel(pageName) {
 }
 
 function loadOnlineUsers() {
-  const token = localStorage.getItem('mi_token');
-  const url = localStorage.getItem('mi_erpUrl');
-  if(!token||!url) return;
-  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({action:'getActivity',token})
-  }).then(r=>r.json()).then(d=>{
+  if(!erpToken||!erpApiUrl) return;
+  apiCall('getActivity').then(d=>{
     if(!d.ok||!d.data) return;
     const list = document.getElementById('onlineUsersList');
     if(!list) return;
@@ -2487,15 +2480,10 @@ function syncUsersToSheets() {
   // Call this when superadmin logs in to sync localStorage users to Sheets
   const u = JSON.parse(localStorage.getItem('mi_erpUser')||'null');
   if(!u||u.role!=='superadmin') return;
-  const token = localStorage.getItem('mi_token');
-  const url = localStorage.getItem('mi_erpUrl');
+  if(!erpToken||!erpApiUrl) return;
   const users = JSON.parse(localStorage.getItem('mi_users')||'[]');
-  if(!token||!url||!users.length) return;
-  users.forEach(usr => {
-    fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'saveUser',token,payload:usr})
-    }).catch(()=>{});
-  });
+  if(!users.length) return;
+  users.forEach(usr => apiCall('saveUser', usr).catch(()=>{}));
 }
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -2955,9 +2943,8 @@ function goPage(id,el){
       const panel=document.getElementById('onlineUsersPanel');
       if(panel&&panel.style.display==='none'){
         panel.style.display='block';
-        const url=localStorage.getItem('mi_erpUrl'),tok=localStorage.getItem('mi_erpToken')||window._erpToken||'';
-        if(url&&tok){
-          fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'getUsers',token:tok})})
+        if(erpApiUrl&&erpToken){
+          apiCall('getUsers')
           .then(r=>r.json()).then(d=>{
             if(!d.ok||!d.data)return;
             const list=document.getElementById('onlineUsersList');
