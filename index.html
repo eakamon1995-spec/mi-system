@@ -475,7 +475,11 @@ select.filter-sel{
     <h3>⚙️ ตั้งค่า</h3>
     <label>GAS Endpoint URL</label>
     <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/...">
-    <label>PO Status Board URL (ถ้าต่างโดเมน)</label>
+    <label style="margin-top:12px">Username (MI System)</label>
+    <input type="text" id="gasUserInput" placeholder="ชื่อผู้ใช้ เช่น eakamon">
+    <label style="margin-top:8px">Password</label>
+    <input type="password" id="gasPassInput" placeholder="รหัสผ่าน">
+    <label style="margin-top:12px">PO Status Board URL (ถ้าต่างโดเมน)</label>
     <input type="text" id="statusUrlInput" placeholder="approval.html">
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeSettings()">ยกเลิก</button>
@@ -544,53 +548,75 @@ function setSyncStatus(state, msg){
   lbl.textContent = msg;
 }
 
+// ── TOKEN MANAGEMENT ────────────────────────────────────
+async function getGasToken(url){
+  const cached = localStorage.getItem('mi_token');
+  if(cached) return cached;
+  const username = localStorage.getItem('mi_username');
+  const password = localStorage.getItem('mi_password');
+  if(!username||!password) return null;
+  try{
+    const resp = await fetchGAS(url, {action:'login', payload:{username, password}});
+    if(resp && resp.ok && resp.token){
+      localStorage.setItem('mi_token', resp.token);
+      return resp.token;
+    }
+  } catch(e){ console.warn('Login failed:',e.message); }
+  return null;
+}
+
 async function startSync(){
   const url = getGasUrl();
   if(!url){ loadFromLocalStorage(); return; }
   setSyncStatus('syncing','กำลัง Sync...');
   try {
-    const resp = await fetchGAS(url, {action:'getDashboard'});
-    if(resp && resp.ok && resp.pos){
-      allPos = resp.pos;
+    const token = await getGasToken(url);
+    if(!token){ setSyncStatus('err','ไม่มี Token — ตั้งค่า User/Pass ใน ⚙️'); loadFromLocalStorage(true); return; }
+    const resp = await fetchGAS(url, {action:'getPOs', token});
+    const posData = resp?.pos || resp?.data || (Array.isArray(resp)?resp:null);
+    if(resp && (resp.ok !== false) && posData){
+      // Map GAS field names → dashboard field names
+      allPos = posData.map(p => ({
+        ...p,
+        poDate:  p.poDate  || (p.date  ? p.date.slice(0,10)  : ''),
+        amount:  p.amount  || p.total  || 0,
+        agent:   p.agent   || p.items?.[0]?.agent || p.supplierName || '—',
+        poNo:    p.poNo    || p.id     || '',
+        status:  p.status  || 'draft',
+      }));
       localStorage.setItem(CACHE_KEY, JSON.stringify(allPos));
       localStorage.setItem(CACHE_TS, Date.now().toString());
       setSyncStatus('ok','Sync สำเร็จ · '+new Date().toLocaleTimeString('th-TH'));
-    } else if(resp && resp.pos){
-      allPos = resp.pos;
-      setSyncStatus('ok','โหลดแล้ว · '+new Date().toLocaleTimeString('th-TH'));
     } else {
+      if(resp?.error?.includes('Unauthorized')) localStorage.removeItem('mi_token');
       throw new Error(resp?.error||'no data');
     }
   } catch(e){
-    // Try fallback action names
-    try {
-      const resp2 = await fetchGAS(url, {action:'getPos'});
-      if(resp2 && Array.isArray(resp2.data||resp2.pos)){
-        allPos = resp2.data || resp2.pos;
-        setSyncStatus('ok','Sync สำเร็จ');
-      } else throw new Error('fallback failed');
-    } catch(e2) {
-      setSyncStatus('err','GAS Error — ใช้ Cache');
-      loadFromLocalStorage(true);
-      return;
-    }
+    setSyncStatus('err','GAS Error — ใช้ Cache');
+    loadFromLocalStorage(true);
+    return;
   }
   buildAgentFilter();
   applyFilters();
   updateLastSync();
 }
 
-function fetchGAS(url, payload){
-  return new Promise((resolve, reject) => {
-    const cbName = '_gcb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-    const timeout = setTimeout(()=>{ delete window[cbName]; reject(new Error('timeout')); }, 12000);
-    window[cbName] = function(data){ clearTimeout(timeout); delete window[cbName]; resolve(data); };
-    const s = document.createElement('script');
-    s.src = url + '?payload=' + encodeURIComponent(JSON.stringify(payload)) + '&t=' + Date.now() + '&callback=' + cbName;
-    s.onerror = ()=>{ clearTimeout(timeout); delete window[cbName]; reject(new Error('script load error')); };
-    document.head.appendChild(s);
-    setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 15000);
-  });
+async function fetchGAS(url, payload){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 14000);
+  try {
+    const resp = await fetch(
+      url + '?data=' + encodeURIComponent(JSON.stringify(payload)) + '&t=' + Date.now(),
+      { signal: controller.signal, redirect: 'follow' }
+    );
+    clearTimeout(timeoutId);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch(err) {
+    clearTimeout(timeoutId);
+    if(err.name==='AbortError') throw new Error('timeout');
+    throw err;
+  }
 }
 
 function loadFromLocalStorage(fromCache){
@@ -1011,12 +1037,23 @@ function exportCSV(){
 // ═══════════════════════════════════════════
 function openSettings(){
   document.getElementById('gasUrlInput').value = getGasUrl();
+  document.getElementById('gasUserInput').value = localStorage.getItem('mi_username')||'';
+  document.getElementById('gasPassInput').value = localStorage.getItem('mi_password')||'';
   document.getElementById('statusUrlInput').value = localStorage.getItem('mi_dash_statusUrl')||STATUS_BOARD_URL;
   document.getElementById('settingsModal').classList.add('show');
 }
 function closeSettings(){ document.getElementById('settingsModal').classList.remove('show'); }
 function saveSettings(){
-  localStorage.setItem('mi_erpUrl', document.getElementById('gasUrlInput').value.trim());
+  const oldUrl = localStorage.getItem('mi_erpUrl');
+  const newUrl = document.getElementById('gasUrlInput').value.trim();
+  const newUser = document.getElementById('gasUserInput').value.trim();
+  const newPass = document.getElementById('gasPassInput').value.trim();
+  if(newUrl !== oldUrl || newUser !== localStorage.getItem('mi_username')) {
+    localStorage.removeItem('mi_token'); // clear token if URL or user changed
+  }
+  localStorage.setItem('mi_erpUrl', newUrl);
+  localStorage.setItem('mi_username', newUser);
+  localStorage.setItem('mi_password', newPass);
   localStorage.setItem('mi_dash_statusUrl', document.getElementById('statusUrlInput').value.trim());
   closeSettings();
   showToast('✅ บันทึกแล้ว — กด Sync','ok');

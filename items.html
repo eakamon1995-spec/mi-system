@@ -137,6 +137,13 @@
   .toast.show { transform:translateY(0); opacity:1; }
   .toast.success { border-color:var(--green); }
   .toast.error { border-color:var(--red); }
+
+  /* SYNC STATUS */
+  .sync-badge { font-size:11px; color:var(--muted); padding:4px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); white-space:nowrap; }
+  .sync-badge.ok { color:var(--green); border-color:rgba(34,197,94,.3); background:rgba(34,197,94,.08); }
+  .sync-badge.err { color:var(--red); border-color:rgba(239,68,68,.3); background:rgba(239,68,68,.08); }
+  .sync-badge.warn { color:var(--amber); border-color:rgba(245,158,11,.3); background:rgba(245,158,11,.08); }
+  .sync-badge.loading { color:var(--accent); border-color:rgba(79,124,255,.3); background:rgba(79,124,255,.08); }
 </style>
 </head>
 <body>
@@ -194,6 +201,8 @@
     <label for="csvFile" class="btn btn-secondary btn-sm" style="cursor:pointer">📥 Import CSV</label>
     <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(this)">
     <button class="btn btn-secondary btn-sm" onclick="exportCSV()">📤 Export</button>
+    <button class="btn btn-secondary btn-sm" onclick="syncFromGAS()">☁ Sync</button>
+    <span class="sync-badge" id="syncStatus">—</span>
   </div>
 
   <!-- TABLE -->
@@ -512,22 +521,27 @@ function saveItem(){
   if(bcCtn&&!validateBc('fBcCtn')) return showToast('⚠ Barcode CTN ไม่ถูกต้อง','error');
   const dup=items.find(i=>i.brand===brand&&i.code===code&&i.id!==editId);
   if(dup) return showToast(`⚠ Code "${code}" มีอยู่แล้วใน ${brand}`,'error');
+  let savedItem;
   if(editId){
     const idx=items.findIndex(i=>i.id===editId);
-    if(idx>=0) items[idx]={...items[idx],brand,code,thaiName,engName,bcPcs,bcCtn,supplier,fac,material,pack,remFactory,remDesign,designRef,picture,updatedAt:new Date().toISOString()};
+    if(idx>=0){ items[idx]={...items[idx],brand,code,thaiName,engName,bcPcs,bcCtn,supplier,fac,material,pack,remFactory,remDesign,designRef,picture,updatedAt:new Date().toISOString()}; savedItem=items[idx]; }
     showToast('✅ อัปเดตแล้ว','success');
   }else{
-    items.push({id:uid(),brand,code,thaiName,engName,bcPcs,bcCtn,supplier,fac,material,pack,remFactory,remDesign,designRef,picture,createdAt:new Date().toISOString()});
+    const newItem={id:uid(),brand,code,thaiName,engName,bcPcs,bcCtn,supplier,fac,material,pack,remFactory,remDesign,designRef,picture,createdAt:new Date().toISOString()};
+    items.push(newItem); savedItem=newItem;
     showToast('✅ เพิ่มสินค้าแล้ว','success');
   }
   saveDB(); closeModal(); updateStats(); renderTable();
+  if(savedItem) pushToGAS(savedItem);
 }
 
 function delItem(id){
   const it=items.find(i=>i.id===id); if(!it)return;
   if(!confirm(`ลบ "${it.code} — ${it.thaiName}" ออก?`)) return;
+  const {code, brand} = it;
   items=items.filter(i=>i.id!==id);
   saveDB(); updateStats(); renderTable();
+  deleteFromGAS(code, brand);
   showToast('🗑️ ลบแล้ว','success');
 }
 
@@ -626,8 +640,129 @@ function showToast(msg,type=''){
   setTimeout(()=>t.className='toast',2800);
 }
 
+// ── GAS TOKEN ────────────────────────────────────────────
+async function getGasToken(url){
+  const cached = localStorage.getItem('mi_token');
+  if(cached) return cached;
+  const username = localStorage.getItem('mi_username');
+  const password = localStorage.getItem('mi_password');
+  if(!username||!password) return null;
+  try{
+    const resp = await fetchGAS(url, {action:'login', payload:{username, password}});
+    if(resp && resp.ok && resp.token){
+      localStorage.setItem('mi_token', resp.token);
+      return resp.token;
+    }
+  } catch(e){ console.warn('Login failed:',e.message); }
+  return null;
+}
+
+// ── GAS SYNC ────────────────────────────────────────────
+async function fetchGAS(url, payload){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 14000);
+  try {
+    const resp = await fetch(
+      url + '?data=' + encodeURIComponent(JSON.stringify(payload)) + '&t=' + Date.now(),
+      { signal: controller.signal, redirect: 'follow' }
+    );
+    clearTimeout(timeoutId);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch(err) {
+    clearTimeout(timeoutId);
+    if(err.name==='AbortError') throw new Error('timeout');
+    throw err;
+  }
+}
+
+function setSyncStatus(state, msg){
+  const el = document.getElementById('syncStatus'); if(!el) return;
+  el.textContent = msg || '—';
+  el.className = 'sync-badge ' + (state||'');
+}
+
+function gasToLocal(r){
+  // pcs/ctn may come as numbers from GAS — convert to string
+  const toStr = v => v ? String(v) : '';
+  return {
+    brand:      (r.brand||'MI').toUpperCase(),
+    code:       (r.code||'').toUpperCase(),
+    thaiName:   r.name||r.thaiName||'',
+    engName:    r.engName||'',
+    bcPcs:      toStr(r.pcs||r.bcPcs),
+    bcCtn:      toStr(r.ctn||r.bcCtn),
+    supplier:   r.sup||r.supplier||'',
+    fac:        toStr(r.fac)||'',
+    material:   r.material||'',
+    pack:       r.pack||'',
+    remFactory: r.remFac||r.remFactory||'',
+    remDesign:  r.remDesign||'',
+    designRef:  r.designRef||'',
+    picture:    r.pic||r.picture||''
+  };
+}
+
+async function syncFromGAS(){
+  const url = localStorage.getItem('mi_erpUrl');
+  if(!url){ setSyncStatus('warn','⚠ ไม่ได้ตั้งค่า URL'); showToast('⚠ ยังไม่ได้ตั้งค่า GAS URL ใน Settings หน้าหลัก','error'); return; }
+  setSyncStatus('loading','🔄 กำลัง Sync...');
+  try{
+    const token = await getGasToken(url);
+    if(!token){ setSyncStatus('warn','⚠ ต้องตั้งค่า User/Pass ใน Settings'); showToast('⚠ ตั้งค่า Username/Password ในหน้าหลัก (⚙️ Settings)','error'); return; }
+    const resp = await fetchGAS(url, {action:'getBarcodes', token});
+    if(!resp || !resp.ok){
+      if(resp?.error?.includes('Unauthorized')) localStorage.removeItem('mi_token');
+      throw new Error(resp?.error||'No response');
+    }
+    const gasItems = resp.items || resp.data || [];
+    let added=0, merged=0;
+    gasItems.forEach(r => {
+      const g = gasToLocal(r);
+      if(!g.code) return;
+      const idx = items.findIndex(it => it.brand===g.brand && it.code===g.code);
+      if(idx>=0){
+        // Merge: GAS fields overwrite GAS-managed fields, keep local-only fields
+        items[idx] = {...items[idx], ...g, id:items[idx].id, createdAt:items[idx].createdAt};
+        merged++;
+      } else {
+        items.push({id:uid(), ...g, createdAt:new Date().toISOString()});
+        added++;
+      }
+    });
+    saveDB(); updateStats(); renderTable();
+    setSyncStatus('ok', `✅ ${gasItems.length} items`);
+    showToast(`✅ Sync สำเร็จ: ${added} ใหม่, ${merged} อัปเดต`,'success');
+    setTimeout(()=>setSyncStatus('ok',`☁ ${gasItems.length} items`),3000);
+  } catch(err){
+    setSyncStatus('err','❌ '+err.message);
+    showToast('❌ Sync ล้มเหลว: '+err.message,'error');
+  }
+}
+
+async function pushToGAS(it){
+  const url = localStorage.getItem('mi_erpUrl'); if(!url) return;
+  try{
+    const token = await getGasToken(url); if(!token) return;
+    await fetchGAS(url, {action:'saveBarcode', token, payload:{
+      brand:it.brand, code:it.code, name:it.thaiName,
+      pcs:it.bcPcs, ctn:it.bcCtn, sup:it.supplier, fac:it.fac, pic:it.picture
+    }});
+  } catch(e){ console.warn('GAS push failed:',e.message); }
+}
+
+async function deleteFromGAS(code, brand){
+  const url = localStorage.getItem('mi_erpUrl'); if(!url) return;
+  try{
+    const token = await getGasToken(url); if(!token) return;
+    await fetchGAS(url, {action:'deleteBarcode', token, payload:{code, brand}});
+  } catch(e){ console.warn('GAS delete failed:',e.message); }
+}
+
 // BOOT
 loadDB(); populateFilters(); updateStats(); renderTable();
+// Auto-sync from GAS on load if URL configured
+if(localStorage.getItem('mi_erpUrl')) setTimeout(syncFromGAS, 800);
 </script>
 </body>
 </html>
