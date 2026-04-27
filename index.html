@@ -2307,21 +2307,20 @@ async function apiCall(action, payload = {}) {
   dbg(`apiCall: action=${action} token=${erpToken?'yes':'null'}`);
   const body = { action, token: erpToken, payload };
 
-  // savePhoto ใช้ POST (base64 ใหญ่เกิน URL limit → 413 ถ้าใช้ GET)
-  // Content-Type: text/plain → simple request ไม่มี CORS preflight
-  const usePost = (action === 'savePhoto');
+  // ส่งทุก action เป็น POST — ป้องกัน URL too long / CORS error
+  // Content-Type: text/plain = simple request ไม่มี CORS preflight
+  // GAS มี doPost() อยู่แล้ว รองรับได้ทุก action
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), usePost ? 60000 : 15000);
+  const isPhoto = (action === 'savePhoto');
+  const timeoutId = setTimeout(() => controller.abort(), isPhoto ? 60000 : 15000);
   try {
-    const fetchOpts = usePost
-      ? { method: 'POST', body: JSON.stringify(body),
-          headers: { 'Content-Type': 'text/plain' },
-          signal: controller.signal, redirect: 'follow' }
-      : { signal: controller.signal, redirect: 'follow' };
-    const url = usePost
-      ? erpApiUrl
-      : erpApiUrl + '?data=' + encodeURIComponent(JSON.stringify(body)) + '&t=' + Date.now();
-    const res = await fetch(url, fetchOpts);
+    const res = await fetch(erpApiUrl, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'text/plain' },
+      signal: controller.signal,
+      redirect: 'follow'
+    });
     clearTimeout(timeoutId);
     const text = await res.text();
     dbg(`response ${res.status}: ${text.slice(0,100)}`);
