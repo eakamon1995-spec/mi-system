@@ -2307,14 +2307,21 @@ async function apiCall(action, payload = {}) {
   dbg(`apiCall: action=${action} token=${erpToken?'yes':'null'}`);
   const body = { action, token: erpToken, payload };
 
-  // Google Apps Script: ส่ง GET + ?data= (CORS รองรับ GET redirect ได้, POST ไม่ได้)
+  // savePhoto ใช้ POST (base64 ใหญ่เกิน URL limit → 413 ถ้าใช้ GET)
+  // Content-Type: text/plain → simple request ไม่มี CORS preflight
+  const usePost = (action === 'savePhoto');
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), usePost ? 60000 : 15000);
   try {
-    const res = await fetch(
-      erpApiUrl + '?data=' + encodeURIComponent(JSON.stringify(body)) + '&t=' + Date.now(),
-      { signal: controller.signal, redirect: 'follow' }
-    );
+    const fetchOpts = usePost
+      ? { method: 'POST', body: JSON.stringify(body),
+          headers: { 'Content-Type': 'text/plain' },
+          signal: controller.signal, redirect: 'follow' }
+      : { signal: controller.signal, redirect: 'follow' };
+    const url = usePost
+      ? erpApiUrl
+      : erpApiUrl + '?data=' + encodeURIComponent(JSON.stringify(body)) + '&t=' + Date.now();
+    const res = await fetch(url, fetchOpts);
     clearTimeout(timeoutId);
     const text = await res.text();
     dbg(`response ${res.status}: ${text.slice(0,100)}`);
